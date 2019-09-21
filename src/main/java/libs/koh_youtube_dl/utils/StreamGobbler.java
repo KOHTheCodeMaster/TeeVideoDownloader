@@ -21,7 +21,7 @@ public class StreamGobbler extends Thread {
                     this.buffer.append((char) nextChar);
                     continue;
                 }
-            } catch (IOException var2) {
+            } catch (IOException ignored) {
             }
 
             return;

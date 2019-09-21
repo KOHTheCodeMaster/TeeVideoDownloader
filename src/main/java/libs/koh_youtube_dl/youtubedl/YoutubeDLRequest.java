@@ -8,21 +8,22 @@ import java.util.Map.Entry;
 public class YoutubeDLRequest {
     private String directory;
     private String url;
-    private Map<String, String> options = new HashMap();
+    private Map<String, String> options;
 
-    public YoutubeDLRequest() {
+    YoutubeDLRequest() {
     }
 
-    public YoutubeDLRequest(String url) {
+    YoutubeDLRequest(String url) {
         this.url = url;
     }
 
     public YoutubeDLRequest(String url, String directory) {
         this.url = url;
         this.directory = directory;
+        options = new HashMap<>();
     }
 
-    public String getDirectory() {
+    String getDirectory() {
         return this.directory;
     }
 
@@ -38,12 +39,12 @@ public class YoutubeDLRequest {
         this.url = url;
     }
 
-    public Map<String, String> getOption() {
+    Map<String, String> getOption() {
         return this.options;
     }
 
     public void setOption(String key) {
-        this.options.put(key, (String) null);
+        this.options.put(key, null);
     }
 
     public void setOption(String key, String value) {
@@ -54,27 +55,25 @@ public class YoutubeDLRequest {
         this.options.put(key, String.valueOf(value));
     }
 
-    protected String buildOptions() {
+    String buildOptions() {
+
         StringBuilder builder = new StringBuilder();
-        if (this.url != null) {
-            builder.append(this.url + " ");
-        }
+        if (this.url != null) builder.append(this.url).append(" ");
 
-        Iterator it = this.options.entrySet().iterator();
+        Iterator<Entry<String, String>> iterator = this.options.entrySet().iterator();
 
-        while (it.hasNext()) {
-            Entry option = (Entry) it.next();
-            String name = (String) option.getKey();
-            String value = (String) option.getValue();
-            if (value == null) {
-                value = "";
-            }
+        while (iterator.hasNext()) {
+            Entry<String, String> option = iterator.next();
+            String name = option.getKey();
+            String value = option.getValue();
 
+            if (value == null) value = "";
             String optionFormatted = String.format("--%s %s", name, value).trim();
-            builder.append(optionFormatted + " ");
-            it.remove();
+            builder.append(optionFormatted).append(" ");
+            iterator.remove();
         }
 
+        System.out.println("buildOptions: " + builder);
         return builder.toString().trim();
     }
 }

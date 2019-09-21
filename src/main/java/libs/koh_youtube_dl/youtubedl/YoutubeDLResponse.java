@@ -11,7 +11,7 @@ public class YoutubeDLResponse {
     private String directory;
     private int elapsedTime;
 
-    public YoutubeDLResponse(String command, Map<String, String> options, String directory, int exitCode, int elapsedTime, String out, String err) {
+    YoutubeDLResponse(String command, Map<String, String> options, String directory, int exitCode, int elapsedTime, String out, String err) {
         this.command = command;
         this.options = options;
         this.directory = directory;
@@ -47,5 +47,18 @@ public class YoutubeDLResponse {
 
     public int getElapsedTime() {
         return this.elapsedTime;
+    }
+
+    @Override
+    public String toString() {
+        return "YoutubeDLResponse{" +
+                "options=" + options + "\n" +
+                "command='" + command + '\'' + "\n" +
+                "exitCode=" + exitCode + "\n" +
+                "out='" + out + '\'' + "\n" +
+                "err='" + err + '\'' + "\n" +
+                "directory='" + directory + '\'' + "\n" +
+                "elapsedTime=" + elapsedTime + "\n" +
+                '}';
     }
 }

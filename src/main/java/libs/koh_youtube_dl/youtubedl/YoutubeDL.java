@@ -6,44 +6,76 @@ import libs.koh_youtube_dl.mapper.VideoInfo;
 import libs.koh_youtube_dl.mapper.VideoThumbnail;
 import libs.koh_youtube_dl.utils.StreamGobbler;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class YoutubeDL {
-    protected static String executablePath = "youtube-dl";
+    private static String executablePath = "youtube-dl";
 
     public YoutubeDL() {
     }
 
-    protected static String buildCommand(String command) {
+    private static String buildCommand(String command) {
         return String.format("%s %s", executablePath, command);
     }
 
     public static YoutubeDLResponse execute(YoutubeDLRequest request) throws YoutubeDLException {
+
+        StringBuffer outBuffer = new StringBuffer();
+        StringBuffer errBuffer = new StringBuffer();
+
         String command = buildCommand(request.buildOptions());
         String directory = request.getDirectory();
         Map<String, String> options = request.getOption();
-        StringBuffer outBuffer = new StringBuffer();
-        StringBuffer errBuffer = new StringBuffer();
         long startTime = System.nanoTime();
         String[] split = command.split(" ");
+
         ProcessBuilder processBuilder = new ProcessBuilder(split);
-        if (directory != null) {
+        if (directory != null && new File(directory).isDirectory()) {
             processBuilder.directory(new File(directory));
         }
+
+/*
+        // checking map view of environment
+        System.out.println("checking map view of environment");
+        for(Map.Entry<String, String> entry : processBuilder.environment().entrySet())
+        {
+            // checking key and value separately
+            System.out.println("Key = " + entry.getKey() +
+                    ", Value = " + entry.getValue());
+        }
+*/
+
+        System.out.println("\nCommand: " + command);
+
+        System.out.println("\nSplit: ");
+        for (String s : split)
+            System.out.print(s + " | ");
 
         Process process;
         try {
             process = processBuilder.start();
+            System.out.println("\nprocessBuilder started...");
         } catch (IOException var19) {
             throw new YoutubeDLException(var19);
         }
 
         InputStream outStream = process.getInputStream();
         InputStream errStream = process.getErrorStream();
+
+/*
+        try {
+            List<String> result = readOutput(outStream);
+            System.out.println(" |== Result ==|");
+            result.forEach(s -> System.out.println());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+*/
+
         new StreamGobbler(outBuffer, outStream);
         new StreamGobbler(errBuffer, errStream);
 
@@ -60,8 +92,7 @@ public class YoutubeDL {
             throw new YoutubeDLException(err);
         } else {
             int elapsedTime = (int) ((System.nanoTime() - startTime) / 1000000L);
-            YoutubeDLResponse youtubeDLResponse = new YoutubeDLResponse(command, options, directory, exitCode, elapsedTime, out, err);
-            return youtubeDLResponse;
+            return new YoutubeDLResponse(command, options, directory, exitCode, elapsedTime, out, err);
         }
     }
 
@@ -71,7 +102,7 @@ public class YoutubeDL {
         return execute(request).getOut();
     }
 
-    public static VideoInfo getVideoInfo(String url) throws YoutubeDLException {
+    private static VideoInfo getVideoInfo(String url) throws YoutubeDLException {
         YoutubeDLRequest request = new YoutubeDLRequest(url);
         request.setOption("dump-json");
         request.setOption("no-playlist");
@@ -113,5 +144,12 @@ public class YoutubeDL {
 
     public static void setExecutablePath(String path) {
         executablePath = path;
+    }
+
+    private static List<String> readOutput(InputStream inputStream) throws IOException {
+        try (BufferedReader output = new BufferedReader(new InputStreamReader(inputStream))) {
+            return output.lines()
+                    .collect(Collectors.toList());
+        }
     }
 }

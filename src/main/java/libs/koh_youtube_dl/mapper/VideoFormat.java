@@ -21,10 +21,31 @@ public class VideoFormat {
     public String acodec;
     public int width;
     public int height;
-    public int filesize;
+    public long filesize;
     public int fps;
     public String url;
 
     public VideoFormat() {
+    }
+
+    @Override
+    public String toString() {
+        return "VideoFormat{\n" +
+                " asr : " + asr +
+                "\n tbr : " + tbr +
+                "\n abr : " + abr +
+                "\n format : '" + format + '\'' +
+                "\n formatId : '" + formatId + '\'' +
+                "\n formatNote : '" + formatNote + '\'' +
+                "\n ext : '" + ext + '\'' +
+                "\n preference : " + preference +
+                "\n vcodec : '" + vcodec + '\'' +
+                "\n acodec : '" + acodec + '\'' +
+                "\n width : " + width +
+                "\n height : " + height +
+                "\n filesize : " + filesize +
+                "\n fps : " + fps +
+                "\n url : '" + url + '\'' +
+                "}\n\n";
     }
 }

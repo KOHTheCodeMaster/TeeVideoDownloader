@@ -7,11 +7,13 @@ import libs.koh_youtube_dl.mapper.VideoThumbnail;
 import libs.koh_youtube_dl.utils.StreamGobbler;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class YoutubeDL {
+
     private static String executablePath = "youtube-dl";
 
     public YoutubeDL() {
@@ -102,39 +104,65 @@ public class YoutubeDL {
         return execute(request).getOut();
     }
 
-    private static VideoInfo getVideoInfo(String url) throws YoutubeDLException {
+    public static List<VideoInfo> getVideoInfoList(String url) throws YoutubeDLException {
+
         YoutubeDLRequest request = new YoutubeDLRequest(url);
         request.setOption("dump-json");
-        request.setOption("no-playlist");
+//        request.setOption("no-playlist");
+
         YoutubeDLResponse response = execute(request);
         ObjectMapper objectMapper = new ObjectMapper();
-        VideoInfo videoInfo = null;
-
+        List<VideoInfo> videoInfoList;
         try {
-            videoInfo = (VideoInfo) objectMapper.readValue(response.getOut(), VideoInfo.class);
-            return videoInfo;
+
+            String strJsonArray = processJson(response.getOut());
+            videoInfoList = Arrays.asList(objectMapper.readValue(strJsonArray, VideoInfo[].class));
+//            List<VideoInfo> arrayList = objectMapper.readValue(strJson, new TypeReference<List<VideoInfo>>(){});
+            return videoInfoList;
+
         } catch (IOException var6) {
             throw new YoutubeDLException("Unable to parse video information: " + var6.getMessage());
         }
     }
 
+    private static String processJson(String jsonUnprocessed) {
+
+        /*
+         *  Time Stamp : 25th September 2K19, 10:16 PM..!!
+         *  jsonUnprocessed => Array of Json String with missing pair of [ ]
+         *  & ',' after every element (ending with new line '\n')
+         */
+        /*
+            videoInfo = (VideoInfo) objectMapper.readValue(response.getOut(), VideoInfo.class);
+            String s1 = "[{\"id\": \"WvR9voi0y2I\", \"uploader\": \"TheHappieCat\"},\n" +
+                    "{\"id\": \"LDCa4U-ZbJ0\", \"uploader\": \"TheHappieCat456\"},\n" +
+                    "{\"id\": \"FsParg61xGw\", \"uploader\": \"TheHappieCat123\"}]";
+            */
+
+        return "[" +
+                jsonUnprocessed.substring(0, jsonUnprocessed.lastIndexOf('\n'))
+                        .replaceAll("\\n", ",\n")
+                + "]";
+
+    }
+
     public static List<VideoFormat> getFormats(String url) throws YoutubeDLException {
-        VideoInfo info = getVideoInfo(url);
+        VideoInfo info = getVideoInfoList(url).get(0);
         return info.formats;
     }
 
     public static List<VideoThumbnail> getThumbnails(String url) throws YoutubeDLException {
-        VideoInfo info = getVideoInfo(url);
+        VideoInfo info = getVideoInfoList(url).get(0);
         return info.thumbnails;
     }
 
     public static List<String> getCategories(String url) throws YoutubeDLException {
-        VideoInfo info = getVideoInfo(url);
+        VideoInfo info = getVideoInfoList(url).get(0);
         return info.categories;
     }
 
     public static List<String> getTags(String url) throws YoutubeDLException {
-        VideoInfo info = getVideoInfo(url);
+        VideoInfo info = getVideoInfoList(url).get(0);
         return info.tags;
     }
 

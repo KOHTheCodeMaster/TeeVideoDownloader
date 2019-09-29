@@ -14,7 +14,7 @@ public class YoutubeDLRequest {
     }
 
     YoutubeDLRequest(String url) {
-        this.url = url;
+        this(url, null);
     }
 
     public YoutubeDLRequest(String url, String directory) {

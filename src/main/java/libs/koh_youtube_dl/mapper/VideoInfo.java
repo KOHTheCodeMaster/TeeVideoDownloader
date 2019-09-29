@@ -43,4 +43,34 @@ public class VideoInfo {
 
     public VideoInfo() {
     }
+
+    @Override
+    public String toString() {
+        return "VideoInfo{" +
+                "id='" + id + '\'' +
+                ", fulltitle='" + fulltitle + '\'' +
+                ", title='" + title + '\'' +
+                ", uploadDate='" + uploadDate + '\'' +
+                ", displayId='" + displayId + '\'' +
+                ", duration=" + duration +
+                ", description='" + description + '\'' +
+                ", thumbnail='" + thumbnail + '\'' +
+                ", license='" + license + '\'' +
+                ", uploaderId='" + uploaderId + '\'' +
+                ", uploader='" + uploader + '\'' +
+                ", playerUrl='" + playerUrl + '\'' +
+                ", webpageUrl='" + webpageUrl + '\'' +
+                ", webpageUrlBasename='" + webpageUrlBasename + '\'' +
+                ", resolution='" + resolution + '\'' +
+                ", width=" + width +
+                ", height=" + height +
+                ", format='" + format + '\'' +
+                ", ext='" + ext + '\'' +
+                ", httpHeader=" + httpHeader +
+                ", categories=" + categories +
+                ", tags=" + tags +
+                ", formats=" + formats +
+                ", thumbnails=" + thumbnails +
+                '}';
+    }
 }

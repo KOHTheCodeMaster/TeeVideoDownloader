@@ -9,20 +9,19 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
 
 public class A1 {
 
     private static final int THREAD_COUNT = 4;
     static int index1 = 0;
-    static List<File> filesList;
+    static List<File> filePartsList;
     private static long sharedCurrentFilePointer;
     private static long startingIndexForEachThread;
     private static int partIndex;
-
-    public A1() {
-
-    }
 
     public static void main(String[] args) {
 
@@ -35,12 +34,12 @@ public class A1 {
 //        f3();
 //        download2();
 
-            filesList = new ArrayList<>();
+//            filePartsList = new ArrayList<>();
 //            for(int i = 1; i <= 5; i++)
-//                filesList.add(new File("A-" + i + ".part"));
-            download3();
-//            merge2(filesList);
-//            httpRangeReq3();
+//                filePartsList.add(new File("A-" + i + ".part"));
+//            download3();
+//            merge2(filePartsList);
+            httpRangeReq3();
 
 //        httpRangeReq2();
 //        download3();
@@ -255,7 +254,7 @@ public class A1 {
                     updateSharedCurrentFilePointer(tempTotalBytesTransferred);
 //                    sharedCurrentFilePointer += tempTotalBytesTransferred;
 
-                    filesList.add(tempTargetFile1);
+                    filePartsList.add(tempTargetFile1);
 
                     System.out.println("Thread Completed | fp : " + sharedCurrentFilePointer);
 
@@ -304,7 +303,7 @@ public class A1 {
             if (remainingDataToDownload != 0)
                 downloadLeftover(resourceUrl, remainingDataToDownload, startingIndexForEachThread);
 
-            merge2(filesList);
+            merge2(filePartsList);
 
 
             Thread.sleep(20);
@@ -362,7 +361,7 @@ public class A1 {
             System.out.println("temp 1: " + tempTotalBytesTransferred);
 
             updateSharedCurrentFilePointer(tempTotalBytesTransferred);
-            filesList.add(tempTargetFile1);
+            filePartsList.add(tempTargetFile1);
 
             System.out.println("Thread Completed | fp : " + sharedCurrentFilePointer);
 
@@ -439,6 +438,79 @@ public class A1 {
         }
 
         System.out.println((System.nanoTime() - i1) / 1E9 + " seconds");
+
+    }
+
+    private static void httpRangeReq3() {
+
+//        String resourceUrl = "https://r1---sn-pni5ooxunva-cvhe.googlevideo.com/videoplayback?expire=1570025307&ei=-1qUXbmoCYLioQOIhZvACQ&ip=103.137.85.1&id=o-ABMQrRjTsXgRiqnOr7u_4UPL7ZRzVC-8DAHW46CsPDEc&itag=160&aitags=133%2C134%2C135%2C136%2C137%2C160%2C242%2C243%2C244%2C247%2C248%2C271%2C278%2C298%2C299%2C302%2C303%2C308%2C313%2C315&source=youtube&requiressl=yes&mm=31%2C29&mn=sn-pni5ooxunva-cvhe%2Csn-qxa7sn7r&ms=au%2Crdu&mv=m&mvi=0&pl=24&initcwndbps=718750&mime=video%2Fmp4&gir=yes&clen=2475472&dur=177.677&lmt=1486764857043883&mt=1570003608&fvip=4&keepalive=yes&fexp=23842630&c=WEB&sparams=expire%2Cei%2Cip%2Cid%2Caitags%2Csource%2Crequiressl%2Cmime%2Cgir%2Cclen%2Cdur%2Clmt&lsparams=mm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Cinitcwndbps&lsig=AHylml4wRgIhAN5qiTJbsyg5oDyLNtXBiY-mGyYO7_BnNq6gjFc8oJR5AiEA2yUJOQslK4-SgkamM1MyQVmU__9guN-ildox5Y38ra0%3D&sig=ALgxI2wwRgIhAIirfdQrwh6I_xMT-4vtNb_q4aiGho8DnJGd9twBO-h2AiEAq3P9WWUR25Kfft0bOWL1yuCexdnZR4igtH_c-Mp9kjQ=&ratebypass=yes";
+//        String resourceUrl = "https://r1---sn-g5pauxapo-qxae.googlevideo.com/videoplayback?expire=1570293659&ei=O3OYXYesC_SMmge3-rPoDg&ip=103.82.80.26&id=o-AMoPD5QIxj_q1ynITesM2EylpPzuCz3MlgYU3fP6h58W&itag=160&aitags=133%2C134%2C135%2C136%2C137%2C160%2C242%2C243%2C244%2C247%2C248%2C271%2C278%2C298%2C299%2C302%2C303%2C308%2C313%2C315&source=youtube&requiressl=yes&mm=31%2C29&mn=sn-g5pauxapo-qxae%2Csn-qxa7sn7r&ms=au%2Crdu&mv=m&mvi=0&pl=24&initcwndbps=351250&mime=video%2Fmp4&gir=yes&clen=2475472&dur=177.677&lmt=1486764857043883&mt=1570271937&fvip=4&keepalive=yes&fexp=23842630&c=WEB&sparams=expire%2Cei%2Cip%2Cid%2Caitags%2Csource%2Crequiressl%2Cmime%2Cgir%2Cclen%2Cdur%2Clmt&lsparams=mm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Cinitcwndbps&lsig=AHylml4wRgIhANS8E--fhAAt_8dA8FTu-oYg8TSp0qYtWR9V1MLRvrVpAiEA_l6DRVUQ0frOeFh_YdXAGa8NxqTaNF5lUsKY8ZCt9ro%3D&sig=ALgxI2wwRQIgYTvu-wcZxd2r7UuyBbCi74nrMvYRP3yUo7zH2ibmvjgCIQD9xpUcYGlQKF8wsBZVmOg8y-o0frec9cW8ntPCpW4ViA==&ratebypass=yes";
+//        String resourceUrl = "https://www.youtube.com/watch?v=fPrixQcSPyM";
+//        String resourceUrl = "https://r1---sn-g5pauxapo-qxae.googlevideo.com/videoplayback?expire=1570345647&ei=Tz6ZXZapFoSS1Aa3267oAw&ip=103.82.80.23&id=o-AFp-GZYWTk5ziC1SP4ecS_8_KjyGPOb_aMXbVNSUky6L&itag=160&aitags=133%2C134%2C135%2C136%2C137%2C160%2C242%2C243%2C244%2C247%2C248%2C271%2C278%2C298%2C299%2C302%2C303%2C308%2C313%2C315&source=youtube&requiressl=yes&mm=31%2C29&mn=sn-g5pauxapo-qxae%2Csn-qxa7sn7r&ms=au%2Crdu&mv=m&mvi=0&pl=24&initcwndbps=216250&mime=video%2Fmp4&gir=yes&clen=2475472&dur=177.677&lmt=1486764857043883&mt=1570323938&fvip=4&keepalive=yes&fexp=23842630&c=WEB&sparams=expire%2Cei%2Cip%2Cid%2Caitags%2Csource%2Crequiressl%2Cmime%2Cgir%2Cclen%2Cdur%2Clmt&lsparams=mm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Cinitcwndbps&lsig=AHylml4wRQIgaFLCiim_jLe2n3H9ADtynx0blpxmzyrs28zAH1JvlZACIQD4-Y5I1aotbMVCTeRDmbkYp3eEF-QM_ma6D9-PBhjJYg%3D%3D&sig=ALgxI2wwRQIhALxZj7ubbnel3634C7uqyEdwANDQtozxBKPBjKXK4h3pAiB_FStEKaYFjt58SpmsfIEfapsc_tUeC5lxEB_QRwHiag==&ratebypass=yes";
+//        String resourceUrl = "https://r1---sn-pni5ooxunva-cvhe.googlevideo.com/videoplayback?expire=1570987698&ei=UgqjXZiiE_ie3LUPnYC4sAo&ip=103.137.85.1&id=o-AHL5D9J17pLaQfxp7AIQbpVWgPVuslSUtBadQDob2WvS&itag=160&aitags=133%2C134%2C135%2C136%2C137%2C160%2C242%2C243%2C244%2C247%2C248%2C271%2C278%2C298%2C299%2C302%2C303%2C308%2C313%2C315&source=youtube&requiressl=yes&mm=31%2C29&mn=sn-pni5ooxunva-cvhe%2Csn-qxa7sn7r&ms=au%2Crdu&mv=m&mvi=0&pl=24&initcwndbps=201250&mime=video%2Fmp4&gir=yes&clen=2475472&dur=177.677&lmt=1486764857043883&mt=1570966010&fvip=4&keepalive=yes&fexp=23842630&beids=9466588&c=WEB&sparams=expire%2Cei%2Cip%2Cid%2Caitags%2Csource%2Crequiressl%2Cmime%2Cgir%2Cclen%2Cdur%2Clmt&lsparams=mm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Cinitcwndbps&lsig=AHylml4wRAIgBqFJG-6ajfjsESOqnMIHaY1WogJwotHeQriq01C7q2MCIApS_nWmFnsRIi8S-piwex7VcvhPosYAx5uknWQDMzze&sig=ALgxI2wwRgIhAPooVCVYnj-AHgS5-J1o64pRuhR2EOqmu-BUw7e3avlDAiEA-b8TTsVy4Fvr6kv840zB0KruxQl80Ize5DhEhyJGtA4=&ratebypass=yes";
+        String resourceUrl = "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Want-Digest";
+        File targetFile = new File("F:\\CODE-ZONE\\JAVA Codes\\IntellijProjects\\Network\\VideoDownloader\\TeeVideoDownloader\\res\\downloaded\\2\\a\\a.txt");
+        if (!targetFile.exists()) {
+            try {
+                targetFile.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        long i1 = System.nanoTime();
+        int rc;
+
+        System.out.println("URL : " + resourceUrl + "\n\n");
+
+        try {
+
+            URL urlObj = new URL(resourceUrl);
+            HttpURLConnection urlConnection = (HttpURLConnection) urlObj.openConnection();
+
+            long startPos = 0, endPos = 999;
+//            urlConnection.addRequestProperty("Range", "bytes=" + startPos + "-" + endPos);
+//                  Want-Digest: MD5;q=0.3, sha;q=1
+//            urlConnection.addRequestProperty("Want-Digest", "");
+            urlConnection.addRequestProperty("Want-Digest", "SHA-512;q=0.3, sha-256;q=1, md5;q=0");
+
+            rc = urlConnection.getResponseCode();
+            if (rc < 0)
+                System.out.println("\nnum1 : " + rc);
+            else
+                System.out.println("\nnum2 : " + rc);
+
+//            urlConnection.connect();
+//            urlConnection.setRequestProperty("Range", "bytes=" + startPos + "-" + endPos);
+//            System.out.println("\nnum : " + urlConnection.getResponseCode());
+//            urlConnection.getRequestMethod();
+            Set<Map.Entry<String, List<String>>> entries = urlConnection.getHeaderFields().entrySet();
+            System.out.println(urlConnection.getResponseMessage());
+
+            entries.forEach(e -> {
+
+                System.out.print(e.getKey() + " : ");
+//                System.out.print("Value List : ");
+                e.getValue().forEach(System.out::println);
+                System.out.println("====");
+
+            });
+
+
+            long fileLength = Long.parseLong(urlObj.openConnection().getHeaderFields().get("Content-Length").get(0));
+            long dx = fileLength / 8;   //  Downloaded by Each Thread
+            long remainingAshData = fileLength % 8; //  Download At End
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("\n\nDone!");
+
+        long i2 = System.nanoTime();
+        System.out.println("\n\nDownload Time : " + (i2 - i1) / 1E9);
+
 
     }
 

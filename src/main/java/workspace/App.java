@@ -9,15 +9,16 @@ public class App {
     public static void main(String[] args) {
 
 //        String url = "https://www.youtube.com/watch?v=CXjjGE3k5PY"; //  16 sec
+        String url = "https://www.youtube.com/playlist?list=PL6gx4Cwl9DGCSvv2N_6jhnEOZnq_419XJ"; //  4 Vid PL
 //        String url = "https://www.youtube.com/playlist?list=PLoJSah60cTP57mDXOO46BZ18RJNap0yvK"; //  3 Vid PL
 //        String url = "https://www.voot.com/shows/bigg-boss-s13/13/839463/sanskaari-playboy-vs-the-bb-house/854477"; //  BB13
-        String url = "https://www.youtube.com/watch?v=fPrixQcSPyM"; //  Avengers
+//        String url = "https://www.youtube.com/watch?v=fPrixQcSPyM"; //  Avengers
 //        String url = "https://www.voot.com/shows/bigg-boss-s13/13/839463/bigg-boss-13-season-premiere/850572"; //  BB13
 //        String url = "https://www.youtube.com/watch?v=47ovZhiddoA"; //  1280x534
 //        String url = "https://www.youtube.com/watch?v=HyNW_4w9IQ0"; //  360p
 
-        File file = new File("F:\\CODE-ZONE\\JAVA Codes\\IntellijProjects\\Network\\VideoDownloader\\TeeVideoDownloader\\res\\downloaded\\2\\a\\app");
-        TeeVideoDownloader obj = new TeeVideoDownloader(url, VideoQuality.Q_360P, file);
+        File file = new File("F:\\CODE-ZONE\\JAVA Codes\\IntellijProjects\\Network\\VideoDownloader\\TeeVideoDownloader\\res\\downloaded\\2\\b\\app");
+        TeeVideoDownloader obj = new TeeVideoDownloader(url, VideoQuality.Q_144P, file);
         obj.start1();
 
     }
@@ -26,11 +27,15 @@ public class App {
 
 /*
  *  Date Created: 25th April 2K19, 09:48 AM..!!
- *  Time Stamp: 13th October 2K19, 12:55 PM..!!
+ *  Time Stamp: 13th October 2K19, 08:21 PM..!!
  *
  *  Project Name : Tee Video Downloader [TVD]
  *
  *  Status: Work In Progress
+ *
+ *  5th Commit - [Stable Playlist Download]
+ *  1. Downloading Video as well as Audio Files in parts then combined into Single Video/Audio File.
+ *  2. Deleted Temporary file parts after Merging the Video & Audio Files.
  *
  *  4th Commit - [Downloading In Parts & finally Merged into 1]
  *  1. Unclean | Messed-Up code for test purposes

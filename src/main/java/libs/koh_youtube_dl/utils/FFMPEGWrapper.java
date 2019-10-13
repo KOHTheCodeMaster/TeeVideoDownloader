@@ -9,12 +9,12 @@ public class FFMPEGWrapper {
 
     private static final String executablePath = "ffmpeg";
 
-    private File srcDir;
+    private File targetFile;
     private File audioStreamFile;
     private File videoStreamFile;
 
-    public FFMPEGWrapper(File srcDir, File audioStreamFile, File videoStreamFile) {
-        this.srcDir = srcDir;
+    public FFMPEGWrapper(File targetFile, File audioStreamFile, File videoStreamFile) {
+        this.targetFile = targetFile;
         this.audioStreamFile = audioStreamFile;
         this.videoStreamFile = videoStreamFile;
     }
@@ -23,8 +23,10 @@ public class FFMPEGWrapper {
 
         long startTime = System.nanoTime();
 
-        int dotIndex = videoStreamFile.getAbsolutePath().lastIndexOf('.');
-        String ext = ".mkv";
+        int dotIndex = videoStreamFile.getName().lastIndexOf('.');
+//        String ext = ".mkv";
+//        String targetFileName = videoStreamFile.getName().substring(0, dotIndex) + ext;
+//        targetFileName = targetFileName.replaceAll("\\\\/", "-");
 
         System.out.println("dotIndex : " + dotIndex);
         System.out.println("vsf : " + videoStreamFile.getAbsolutePath());
@@ -34,7 +36,7 @@ public class FFMPEGWrapper {
                 "\"" + audioStreamFile.getAbsolutePath() + "\"",
                 "-i",
                 "\"" + videoStreamFile.getAbsolutePath() + "\"",
-                "\"" + videoStreamFile.getAbsolutePath().substring(0, dotIndex) + ext + "\"",
+                "\"" + targetFile + "\"",
         };
 //        command = buildCommand();
         System.out.println("Command: ");
@@ -46,8 +48,8 @@ public class FFMPEGWrapper {
         Process process;
         ProcessBuilder processBuilder = new ProcessBuilder(commandArr);//.inheritIO();
 
-//        if (srcDir != null && srcDir.isDirectory())
-//            processBuilder.directory(srcDir);
+//        if (targetFile != null && targetFile.isDirectory())
+//            processBuilder.directory(targetFile);
 
         StringBuffer outBuffer = new StringBuffer();
         StringBuffer errBuffer = new StringBuffer();

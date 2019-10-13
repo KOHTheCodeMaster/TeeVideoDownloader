@@ -1,0 +1,16 @@
+<component name="ArtifactManager">
+  <artifact name="TeeVideoDownloader:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/TeeVideoDownloader_jar</output-path>
+    <root id="root">
+      <element id="archive" name="TeeVideoDownloader.jar">
+        <element id="directory" name="META-INF">
+          <element id="file-copy" path="$PROJECT_DIR$/src/META-INF/MANIFEST.MF" />
+        </element>
+        <element id="module-output" name="TeeVideoDownloader.main" />
+      </element>
+      <element id="library" level="project" name="Gradle: com.fasterxml.jackson.core:jackson-databind:2.0.1" />
+      <element id="library" level="project" name="Gradle: com.fasterxml.jackson.core:jackson-core:2.0.1" />
+      <element id="library" level="project" name="Gradle: com.fasterxml.jackson.core:jackson-annotations:2.0.1" />
+    </root>
+  </artifact>
+</component>

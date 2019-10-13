@@ -14,7 +14,7 @@ public class StreamGobbler extends Thread {
         this(buffer, stream, false);
     }
 
-    public StreamGobbler(StringBuffer buffer, InputStream stream, Boolean shouldPrintStream) {
+    StreamGobbler(StringBuffer buffer, InputStream stream, boolean shouldPrintStream) {
         this.stream = stream;
         this.buffer = buffer;
         this.shouldPrintStream = shouldPrintStream;
@@ -23,6 +23,7 @@ public class StreamGobbler extends Thread {
 
     @Override
     public void run() {
+        System.out.println("RUN..!!\n");
         if (shouldPrintStream) printStreamOutput2();
         else bufferStreamOutput();
     }
@@ -55,11 +56,10 @@ public class StreamGobbler extends Thread {
                 BufferedReader br = new BufferedReader(isr);
                 String line = null;
                 if ((line = br.readLine()) != null) {
-                    Thread.sleep(2000);
-                    System.out.println(line + "\n!!a!!");
+                    System.out.println(line);
                     continue;
                 }
-            } catch (IOException | InterruptedException ioe) {
+            } catch (IOException ioe) {
                 ioe.printStackTrace();
             }
 
@@ -93,6 +93,7 @@ public class StreamGobbler extends Thread {
                 int nextChar;
                 if ((nextChar = this.stream.read()) != -1) {
                     this.buffer.append((char) nextChar);
+//                    System.out.print((char)nextChar);
                     continue;
                 }
             } catch (IOException ignored) {

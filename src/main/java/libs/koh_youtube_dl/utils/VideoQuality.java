@@ -1,5 +1,7 @@
 package libs.koh_youtube_dl.utils;
 
+import java.util.Scanner;
+
 public enum VideoQuality {
 
     Q_4K(3840, 2160),  //  2160P
@@ -53,6 +55,40 @@ public enum VideoQuality {
         String exceptionMsg = "Invalid Width Detected...\n" +
                 "Found width  : " + width + "\n";
         throw new VideoQualityOutOfScopeException(exceptionMsg);
+
+    }
+
+    public static VideoQuality chooseVideoQuality() {
+
+        Scanner scanner = new Scanner(System.in);
+        int ch;
+
+        do {
+            ch = scanner.nextInt();
+            switch (ch) {
+
+                case 4000:
+                    return Q_4K;
+                case 2000:
+                    return Q_2K;
+                case 1080:
+                    return Q_1080P;
+                case 720:
+                    return Q_720P;
+                case 480:
+                    return Q_480P;
+                case 360:
+                    return Q_360P;
+                case 240:
+                    return Q_240P;
+                case 144:
+                    return Q_144P;
+                default:
+                    System.out.println("Invalid Input!\nPlease Enter Valid Width Resolution : ");
+                    ch = 0;
+
+            }
+        } while (true);
 
     }
 

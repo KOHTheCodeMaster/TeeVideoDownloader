@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Class-Path: jackson-databind-2.0.1.jar jackson-core-2.0.1.jar jackson-
+ annotations-2.0.1.jar
+Main-Class: workspace.App
+

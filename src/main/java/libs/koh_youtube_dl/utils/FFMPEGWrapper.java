@@ -26,7 +26,10 @@ public class FFMPEGWrapper {
         int dotIndex = videoStreamFile.getAbsolutePath().lastIndexOf('.');
         String ext = ".mkv";
 
-        String[] c = {executablePath,
+        System.out.println("dotIndex : " + dotIndex);
+        System.out.println("vsf : " + videoStreamFile.getAbsolutePath());
+
+        String[] commandArr = {executablePath,
                 "-i",
                 "\"" + audioStreamFile.getAbsolutePath() + "\"",
                 "-i",
@@ -35,13 +38,13 @@ public class FFMPEGWrapper {
         };
 //        command = buildCommand();
         System.out.println("Command: ");
-        Arrays.stream(c).forEach(System.out::println);
+        Arrays.stream(commandArr).forEach(System.out::println);
         System.out.println();
 
         //  inheritIO() method ensures that the process
         //  Output is redirected to the Java Program Console at realtime
         Process process;
-        ProcessBuilder processBuilder = new ProcessBuilder(c).inheritIO();
+        ProcessBuilder processBuilder = new ProcessBuilder(commandArr);//.inheritIO();
 
 //        if (srcDir != null && srcDir.isDirectory())
 //            processBuilder.directory(srcDir);
@@ -57,7 +60,7 @@ public class FFMPEGWrapper {
 
 //        new StreamGobbler(outBuffer, outStream);
         new StreamGobbler(outBuffer, outStream, true);
-        new StreamGobbler(errBuffer, errStream);
+        new StreamGobbler(errBuffer, errStream, true);
 
         int exitCode = 0;
         try {
@@ -71,7 +74,8 @@ public class FFMPEGWrapper {
         if (exitCode > 0) {
             throw new IOException(err);
         } else {
-//            System.out.println("Buffer : " + out);
+            System.out.println("Out Buffer : " + out);
+            System.out.println("Err Buffer : " + err);
             long processTime = ((System.nanoTime() - startTime) / (long) 1E9);
             System.out.println("Process Time : " + processTime + " seconds.");
         }

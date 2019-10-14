@@ -23,7 +23,7 @@ public class StreamGobbler extends Thread {
 
     @Override
     public void run() {
-        System.out.println("RUN..!!\n");
+        System.out.println("Stream Gobbler Started\n");
         if (shouldPrintStream) printStreamOutput2();
         else bufferStreamOutput();
     }

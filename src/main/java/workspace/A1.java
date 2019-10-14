@@ -29,6 +29,8 @@ public class A1 {
 
         try {
 
+            checkArgs();
+
 //        obj.f1();
 //        obj.major();
 //        f3();
@@ -39,7 +41,7 @@ public class A1 {
 //                filePartsList.add(new File("A-" + i + ".part"));
 //            download3();
 //            merge2(filePartsList);
-            httpRangeReq3();
+//            httpRangeReq3();
 
 //        httpRangeReq2();
 //        download3();
@@ -48,6 +50,19 @@ public class A1 {
             e.printStackTrace();
         }
 
+    }
+
+    private static void checkArgs() {
+
+        String s = "ABC";
+        c1(s);
+        System.out.println(s);
+
+    }
+
+    private static String c1(String s) {
+        s += "...";
+        return s;
     }
 
     private static void merge1() throws IOException, InterruptedException {

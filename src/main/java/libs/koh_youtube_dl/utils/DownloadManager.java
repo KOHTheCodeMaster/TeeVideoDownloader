@@ -24,13 +24,9 @@ public class DownloadManager {
     private File srcDir;
     private List<File> filePartsList;
 
-    public DownloadManager() {
+    public DownloadManager(String tempDirPath) {
         filePartsList = new ArrayList<>();
-        TEMP_DIR_PATH = "F:\\CODE-ZONE\\JAVA Codes\\IntellijProjects\\Network\\VideoDownloader\\TeeVideoDownloader\\res\\downloaded\\2\\b\\app\\.temp\\";
-    }
-
-    private static synchronized void updateSharedCurrentFilePointer(long f) {
-        sharedCurrentFilePointer += f;
+        TEMP_DIR_PATH = tempDirPath;
     }
 
     public void downloadOffUrl(String resourceUrl, File targetFile) {
@@ -213,38 +209,8 @@ public class DownloadManager {
 
     }
 
-    private void combineFileParts(List<File> filePartsList, File destinationFile) {
-
-        long i1 = System.nanoTime();
-
-        long pos = 0;
-
-        for (int i = 1; i <= filePartsList.size(); i++) {
-
-            String fName = "A-" + i + ".part";
-            File f = new File(TEMP_DIR_PATH, fName);
-            System.out.println("f : " + f.getName());
-            System.out.println("pos : " + pos);
-
-            try (FileInputStream fis = new FileInputStream(f);
-                 ReadableByteChannel rbc = Channels.newChannel(fis);
-                 FileOutputStream fos = new FileOutputStream(destinationFile, true);
-                 FileChannel fc = fos.getChannel()) {
-
-                fc.position(pos * pos);
-                fc.transferFrom(rbc, pos, Long.MAX_VALUE);
-                pos += f.length();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        }
-
-        System.out.println("Target File Size : " + destinationFile.length());
-
-        System.out.println((System.nanoTime() - i1) / 1E9 + " seconds");
-
+    private static synchronized void updateSharedCurrentFilePointer(long f) {
+        sharedCurrentFilePointer += f;
     }
 
     private void reset() {
@@ -265,6 +231,40 @@ public class DownloadManager {
 
         filePartsList = null;
         filePartsList = new ArrayList<>();
+
+    }
+
+    private void combineFileParts(List<File> filePartsList, File destinationFile) {
+
+        long i1 = System.nanoTime();
+        long pos = 0;
+
+        for (int i = 1; i <= filePartsList.size(); i++) {
+
+            String fName = "A-" + i + ".part";
+            File f = new File(TEMP_DIR_PATH, fName);
+            System.out.println("f : " + f.getName());
+            System.out.println("pos : " + pos);
+
+            try (FileInputStream fis = new FileInputStream(f);
+                 ReadableByteChannel rbc = Channels.newChannel(fis);
+                 FileOutputStream fos = new FileOutputStream(destinationFile, true);
+                 FileChannel fc = fos.getChannel()) {
+
+                //  Although stable but Uncertain about logic for position method with pos*pos as an arg.
+                fc.position(pos * pos);
+                fc.transferFrom(rbc, pos, Long.MAX_VALUE);
+                pos += f.length();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        System.out.println("Target File Size : " + destinationFile.length());
+
+        System.out.println((System.nanoTime() - i1) / 1E9 + " seconds");
 
     }
 

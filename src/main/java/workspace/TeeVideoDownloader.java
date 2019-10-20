@@ -36,7 +36,7 @@ public class TeeVideoDownloader {
     private static final int THREAD_COUNT = 4;
     private static long sharedCurrentFilePointer;
     private static long startingIndexForEachThread;
-    private final String TEMP_DIR_PATH;
+    private String TEMP_DIR_PATH;
     private int serialNumPrefix;
     private int indexFileName;
     private int totalNumOfVids;
@@ -154,18 +154,23 @@ public class TeeVideoDownloader {
 
     private void begin() {
 
-        Scanner scanner = new Scanner(System.in);
+        parseUrl(mainUrl);
 
+    }
+
+    private void initializeDataMembers() {
+
+        Scanner scanner = new Scanner(System.in);
         if (mainUrl == null) {
             System.out.println("Enter MAIN URL: ");
             mainUrl = scanner.nextLine();
             System.out.println("Enter Src Dir.: ");
             srcDir = new File(scanner.nextLine());
+            TEMP_DIR_PATH = srcDir + "/.temp";
+
             System.out.println("Enter Preferred Quality.: ");
             preferredVideoQuality = VideoQuality.chooseVideoQuality();
         }
-
-        parseUrl(mainUrl);
 
     }
 
@@ -175,7 +180,9 @@ public class TeeVideoDownloader {
 
     private void init() {
 
-        downloadManager = new DownloadManager();
+        initializeDataMembers();
+
+        downloadManager = new DownloadManager(TEMP_DIR_PATH);
         filePartsList = new ArrayList<>();
         serialNumPrefix = 1;
 

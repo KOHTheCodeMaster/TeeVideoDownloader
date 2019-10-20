@@ -1,5 +1,8 @@
 package workspace;
 
+import io.netty.handler.codec.http.HttpHeaders;
+import org.asynchttpclient.*;
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -22,6 +25,8 @@ public class A1 {
     private static long sharedCurrentFilePointer;
     private static long startingIndexForEachThread;
     private static int partIndex;
+    private static int i;
+
 
     public static void main(String[] args) {
 
@@ -29,7 +34,8 @@ public class A1 {
 
         try {
 
-            checkArgs();
+//            checkArgs();
+            async1();
 
 //        obj.f1();
 //        obj.major();
@@ -49,6 +55,68 @@ public class A1 {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+    }
+
+    private static void async1() {
+
+        final long[] totalBytes = {0};
+        String resourceUrl = "https://r2---sn-pni5ooxunva-cvhe.googlevideo.com/videoplayback?expire=1571082196&ei=c3ukXcSEK62CssUPl8KoyAo&ip=103.137.85.1&id=o-AKd10888fYdYDDFwllrrRbL8uZCAWLPu5BUiZzLLS1Vq&itag=160&aitags=133%2C134%2C135%2C136%2C137%2C160%2C242%2C243%2C244%2C247%2C248%2C271%2C278%2C313&source=youtube&requiressl=yes&mm=31%2C29&mn=sn-pni5ooxunva-cvhe%2Csn-qxa7sn7r&ms=au%2Crdu&mv=m&mvi=1&pl=24&initcwndbps=940000&mime=video%2Fmp4&gir=yes&clen=221698&dur=16.216&lmt=1443578461420672&mt=1571060511&fvip=2&keepalive=yes&fexp=23842630&c=WEB&sparams=expire%2Cei%2Cip%2Cid%2Caitags%2Csource%2Crequiressl%2Cmime%2Cgir%2Cclen%2Cdur%2Clmt&sig=ALgxI2wwRQIhAO81KdAGso_V4oLUF3TFmnL00i1D6zDiiE-Hm_epX8BkAiBpU-AeH1dxlqz_85KBXzU-WqYeFkovHChezNeiQFiGkw%3D%3D&lsparams=mm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Cinitcwndbps&lsig=AHylml4wRQIgfHdHyzJGVvRuz5xqxyKEIeIl03j7Zt8Mh4MB7w6UA8oCIQD_9DO7qmnhB64LdIcv628Pz4AjFmGXrN_78dkNszBhZA%3D%3D&ratebypass=yes";    //  Avengers Video 1080P
+
+        System.out.println("1212");
+        AsyncHttpClient client = Dsl.asyncHttpClient();
+        Request getRequest = Dsl.get(resourceUrl).build();
+
+        AsyncHandler asyncHandler = new AsyncHandler() {
+            @Override
+            public State onStatusReceived(HttpResponseStatus responseStatus) throws Exception {
+                System.out.println("Response Status : " + responseStatus);
+                return State.CONTINUE;
+            }
+
+            @Override
+            public State onHeadersReceived(HttpHeaders headers) throws Exception {
+                System.out.println("Response Status : " + headers);
+                for (Map.Entry<String, String> entry : headers.entries()) {
+                    System.out.println(entry.getKey() + " : " + entry.getValue() + "\n=======");
+                }
+
+                return State.CONTINUE;
+
+            }
+
+            @Override
+            public State onBodyPartReceived(HttpResponseBodyPart bodyPart) throws Exception {
+                System.out.println("Bodypart : " + bodyPart);
+                System.out.println("len : " + bodyPart.length());
+                System.out.println("buf : " + bodyPart.getBodyByteBuffer());
+
+
+                i++;
+                totalBytes[0] += bodyPart.getBodyPartBytes().length;
+                return null;
+            }
+
+            @Override
+            public void onThrowable(Throwable t) {
+                System.out.println("Throwable : " + t);
+
+            }
+
+            @Override
+            public Object onCompleted() throws Exception {
+                System.out.println("Completed!");
+                System.out.println("totalBytes : " + totalBytes[0]);
+                System.out.println("i : " + i);
+                try {
+                    client.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return State.ABORT;
+            }
+        };
+        client.executeRequest(getRequest, asyncHandler);
 
     }
 
@@ -1067,3 +1135,48 @@ public class A1 {
 
 
 }
+
+/*
+    //  this method belongs to DownloadManager
+    private void handleAPIRequest(RequestParams requestParams) {
+
+        System.out.println("generateAPIRequest: Making API Request" +
+                "\nrequestParams : " + requestParams.toString() + "\n");
+
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.get(WEATHER_API_URL, requestParams, new JsonHttpResponseHandler() {
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+                super.onSuccess(statusCode, headers, response);
+                System.out.println("onSuccess: API Request Successful.");
+                System.out.println("onSuccess: Response Status Code : " + statusCode);
+                System.out.println("onSuccess: Response: " + response.toString());
+
+                weatherDataPOJO = WeatherDataPOJO.parseJsonToWeatherData(response);
+                System.out.println("onSuccess: weatherDataPOJO : " + weatherDataPOJO);
+
+                updateMainActivityUI();
+
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
+                super.onFailure(statusCode, headers, throwable, errorResponse);
+
+                Log.e(TAG, "onFailure: error", throwable);
+                System.out.println("onFailure: API Request Failed.");
+                System.out.println("onFailure: Response Status Code : " + statusCode);
+                System.out.println("onFailure: Response: " + errorResponse.toString());
+
+                if (statusCode == 404) {
+                    String msg = "Invalid City Name..!!";
+                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+                }
+
+            }
+
+        });
+
+    }
+*/

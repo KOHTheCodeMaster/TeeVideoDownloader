@@ -1,7 +1,5 @@
 package workspace;
 
-import libs.koh_youtube_dl.utils.VideoQuality;
-
 import java.io.File;
 
 public class App {
@@ -12,17 +10,17 @@ public class App {
 //        String url = "https://www.youtube.com/playlist?list=PL6gx4Cwl9DGCSvv2N_6jhnEOZnq_419XJ"; //  4 Vid PL
 //        String url = "https://www.youtube.com/playlist?list=PLAwxTw4SYaPnMwH5-FNkErnnq_aSy706S"; //  416 Udacity Vid PL
 //        String url = "https://www.youtube.com/watch?v=SgcCqnYt5O8"; //  416 Udacity Vid PL
-        String url = "https://www.youtube.com/playlist?list=PLAwxTw4SYaPl8TaY7QKWfLc16FZOsXHuP"; //  14 Udacity Vid PL
+//        String url = "https://www.youtube.com/playlist?list=PLAwxTw4SYaPl8TaY7QKWfLc16FZOsXHuP"; //  14 Udacity Vid PL
 //        String url = "https://www.linkedin.com/learning/learning-sql-server-2017"; //  4 Vid PL
 //        String url = "https://www.youtube.com/playlist?list=PLoJSah60cTP57mDXOO46BZ18RJNap0yvK"; //  3 Vid PL
 //        String url = "https://www.voot.com/shows/bigg-boss-s13/13/839463/sanskaari-playboy-vs-the-bb-house/854477"; //  BB13
-//        String url = "https://www.youtube.com/watch?v=fPrixQcSPyM"; //  Avengers
+        String url = "https://www.youtube.com/watch?v=fPrixQcSPyM"; //  Avengers
 //        String url = "https://www.voot.com/shows/bigg-boss-s13/13/839463/bigg-boss-13-season-premiere/850572"; //  BB13
 //        String url = "https://www.youtube.com/watch?v=47ovZhiddoA"; //  1280x534
 //        String url = "https://www.youtube.com/watch?v=HyNW_4w9IQ0"; //  360p
 
         File file = new File("F:\\CODE-ZONE\\JAVA Codes\\IntellijProjects\\Network\\VideoDownloader\\TeeVideoDownloader\\res\\downloaded\\2\\b\\app");
-        TeeVideoDownloader obj = new TeeVideoDownloader(url, VideoQuality.Q_144P, file);
+        TeeVideoDownloader obj = new TeeVideoDownloader();
         obj.start1();
 
     }
@@ -31,11 +29,16 @@ public class App {
 
 /*
  *  Date Created: 25th April 2K19, 09:48 AM..!!
- *  Time Stamp: 14th October 2K19, 06:16 PM..!!
+ *  Time Stamp: 20th October 2K19, 06:05 PM..!!
  *
  *  Project Name : Tee Video Downloader [TVD]
  *
  *  Status: Unstable - Connection Timeout
+ *
+ *  7th Commit - [TVD-Test-01.jar]
+ *  1. Stabilized App with default constructor to let user choose URL, SrcDir & Quality.
+ *  2. Testing JAR File - 'TVD-Test-01.jar' released.
+ *  3. AsyncHTTP client experimented in A1.
  *
  *  6th Commit - [Added Serial Numbers]
  *  1. Added Serial Numbers to the Downloaded Files in case of Playlist.

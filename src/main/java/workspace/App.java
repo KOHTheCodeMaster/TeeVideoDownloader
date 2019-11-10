@@ -1,5 +1,7 @@
 package workspace;
 
+import libs.koh_youtube_dl.utils.VideoQuality;
+
 import java.io.File;
 
 public class App {
@@ -10,17 +12,21 @@ public class App {
 //        String url = "https://www.youtube.com/playlist?list=PL6gx4Cwl9DGCSvv2N_6jhnEOZnq_419XJ"; //  4 Vid PL
 //        String url = "https://www.youtube.com/playlist?list=PLAwxTw4SYaPnMwH5-FNkErnnq_aSy706S"; //  416 Udacity Vid PL
 //        String url = "https://www.youtube.com/watch?v=SgcCqnYt5O8"; //  416 Udacity Vid PL
-//        String url = "https://www.youtube.com/playlist?list=PLAwxTw4SYaPl8TaY7QKWfLc16FZOsXHuP"; //  14 Udacity Vid PL
+//        String url = "https://www.youtube.com/playlist?list=PLAwxTw4SYaPl8TaY7QKWfLc16FZOsXHuP"; //  8 Udacity Vid PL
 //        String url = "https://www.linkedin.com/learning/learning-sql-server-2017"; //  4 Vid PL
-//        String url = "https://www.youtube.com/playlist?list=PLoJSah60cTP57mDXOO46BZ18RJNap0yvK"; //  3 Vid PL
 //        String url = "https://www.voot.com/shows/bigg-boss-s13/13/839463/sanskaari-playboy-vs-the-bb-house/854477"; //  BB13
-        String url = "https://www.youtube.com/watch?v=fPrixQcSPyM"; //  Avengers
+//        String url = "https://www.youtube.com/playlist?list=PLrnPJCHvNZuA80lNWNCLICR3qYzhw3iPI"; //  Constraint PL
+//        String url = "https://www.youtube.com/watch?v=Ske1_LuymRI"; //  Constraint
+//        String url = "https://www.youtube.com/playlist?list=PLoJSah60cTP57mDXOO46BZ18RJNap0yvK"; //  3 Vid PL
+//        String url = "https://www.youtube.com/watch?v=FsParg61xGw"; //  3rd Vid  of PL  [Slow URL]
+//        String url = "https://www.youtube.com/watch?v=fPrixQcSPyM"; //  Avengers
 //        String url = "https://www.voot.com/shows/bigg-boss-s13/13/839463/bigg-boss-13-season-premiere/850572"; //  BB13
 //        String url = "https://www.youtube.com/watch?v=47ovZhiddoA"; //  1280x534
-//        String url = "https://www.youtube.com/watch?v=HyNW_4w9IQ0"; //  360p
+        String url = "https://www.youtube.com/watch?v=HyNW_4w9IQ0"; //  360p
 
-        File file = new File("F:\\CODE-ZONE\\JAVA Codes\\IntellijProjects\\Network\\VideoDownloader\\TeeVideoDownloader\\res\\downloaded\\2\\b\\app");
-        TeeVideoDownloader obj = new TeeVideoDownloader();
+        File file = new File("F:\\UNSORTED\\b\\00");
+        TeeVideoDownloader obj = new TeeVideoDownloader(null, VideoQuality.Q_4K, file, true);
+//        TeeVideoDownloader obj = new TeeVideoDownloader();
         obj.start1();
 
     }
@@ -29,11 +35,25 @@ public class App {
 
 /*
  *  Date Created: 25th April 2K19, 09:48 AM..!!
- *  Time Stamp: 20th October 2K19, 06:05 PM..!!
+ *  Time Stamp: 11th November 2K19, 00:22 AM..!!
  *
  *  Project Name : Tee Video Downloader [TVD]
  *
- *  Status: Unstable - Connection Timeout
+ *  Status: Stable - Accurate Extensions Conversion
+ *
+ *  8th Commit - [TVD-Test-02.jar]
+ *  1. Updated DownloadManager with support to download files which do not support downloading in chunks
+ *  2. Using DownloaderThread class to handle each downloading thread separately and maintain modularity
+ *  3. Downloading Best Available Streams for both Audio & Video and later converting according to the desired EXTENSION
+ *  4. Optimized FFMPEGWrapper by Avoiding redundant conversion of Audio & Video streams by handling the extensions accordingly
+ *  5. Additional static method FFMPEGWrapper.extractAudioFileOffVideo to extract Audio File from the particular file
+ *     with both audio & video streams i.e. generally  a-codec : "mp4a" with extension : ".mp4"
+ *  6. Added option to select if want to directly Copy Streams [mkv] or convert incompatible extensions like webm mp4
+ *
+ *  Bugs To Fix:
+ *  1. Unresolved SSL Exception due to Timeout when Downloading for a long time by single thread
+ *  2. Uncertainly slow downloading speed at specific urls including "https://www.youtube.com/watch?v=FsParg61xGw"
+ *  3. Handle the scenario when File with the same name already exists in srcDir or tempDirPath
  *
  *  7th Commit - [TVD-Test-01.jar]
  *  1. Stabilized App with default constructor to let user choose URL, SrcDir & Quality.

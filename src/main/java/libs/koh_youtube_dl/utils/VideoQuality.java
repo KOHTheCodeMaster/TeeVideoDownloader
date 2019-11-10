@@ -85,7 +85,6 @@ public enum VideoQuality {
                     return Q_144P;
                 default:
                     System.out.println("Invalid Input!\nPlease Enter Valid Width Resolution : ");
-                    ch = 0;
 
             }
         } while (true);

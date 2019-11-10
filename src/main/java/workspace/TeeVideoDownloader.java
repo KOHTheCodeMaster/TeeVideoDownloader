@@ -12,36 +12,25 @@ import libs.koh_youtube_dl.youtubedl.YoutubeDLRequest;
 import libs.koh_youtube_dl.youtubedl.YoutubeDLResponse;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static workspace.A1.filePartsList;
-
 public class TeeVideoDownloader {
 
-    private static final int THREAD_COUNT = 4;
-    private static long sharedCurrentFilePointer;
-    private static long startingIndexForEachThread;
-    private String TEMP_DIR_PATH;
+    private final String EXTENSION;
+    private String tempDirPath;
     private int serialNumPrefix;
-    private int indexFileName;
     private int totalNumOfVids;
-    private volatile boolean shouldCreateNewThread;
     private volatile boolean isPlaylist;
+    private boolean mustKeepMP4;
     private String mainUrl;
     private File srcDir;
     private File aFile;
@@ -55,11 +44,16 @@ public class TeeVideoDownloader {
     }
 
     TeeVideoDownloader(String mainUrl, VideoQuality preferredVideoQuality, File srcDir) {
+        this(mainUrl, preferredVideoQuality, srcDir, false);
+    }
+
+    TeeVideoDownloader(String mainUrl, VideoQuality preferredVideoQuality, File srcDir, boolean mustKeepMP4) {
         this.preferredVideoQuality = preferredVideoQuality;
         this.mainUrl = mainUrl;
         this.srcDir = srcDir;
-
-        TEMP_DIR_PATH = srcDir + "/.temp";
+        this.tempDirPath = srcDir + "/.temp";
+        this.mustKeepMP4 = mustKeepMP4;
+        this.EXTENSION = mustKeepMP4 ? "mp4" : "mkv";
     }
 
     public static void main(String[] args) {
@@ -166,27 +160,25 @@ public class TeeVideoDownloader {
             mainUrl = scanner.nextLine();
             System.out.println("Enter Src Dir.: ");
             srcDir = new File(scanner.nextLine());
-            TEMP_DIR_PATH = srcDir + "/.temp";
+            tempDirPath = srcDir + "/.temp";
+            System.out.println("Download in MP4 Format Only? [Y/N] : ");
+            mustKeepMP4 = scanner.nextLine().toLowerCase().charAt(0) == 'y';
 
             System.out.println("Enter Preferred Quality.: ");
+            System.out.print("4000 | 2000 | 1080 | 720 |  480 | 360 | 240 | 144\n[?] : ");
             preferredVideoQuality = VideoQuality.chooseVideoQuality();
         }
 
-    }
-
-    private static synchronized void updateSharedCurrentFilePointer(long f) {
-        sharedCurrentFilePointer += f;
     }
 
     private void init() {
 
         initializeDataMembers();
 
-        downloadManager = new DownloadManager(TEMP_DIR_PATH);
-        filePartsList = new ArrayList<>();
+        downloadManager = new DownloadManager(tempDirPath);
         serialNumPrefix = 1;
 
-        File file = new File(TEMP_DIR_PATH);
+        File file = new File(tempDirPath);
         if (!file.isDirectory() && !file.mkdirs()) {
             System.out.println("Failed to Create Temp Dir. to store temporary files");
             System.exit(-17);
@@ -222,9 +214,12 @@ public class TeeVideoDownloader {
     private void downloadVI(ArrayList<VideoFormat> formats, File srcDir, VideoQuality preferredVideoQuality, String title) {
 
         foundTopScope = null;
+        AtomicBoolean shouldDirectlyCopyVideoStream = new AtomicBoolean(false);
+        AtomicBoolean shouldDirectlyCopyAudioStreams = new AtomicBoolean(false);
 
         Comparator<VideoFormat> comparatorHighToLowResolution = Comparator.comparingInt(vf -> -1 * vf.width);
         Comparator<VideoFormat> comparatorHighToLowTBR = Comparator.comparingInt(vf -> -1 * vf.tbr);
+        Comparator<VideoFormat> comparatorHighToLowABR = Comparator.comparingInt(vf -> -1 * vf.abr);
 
         Predicate<VideoFormat> filterQuality = vf -> {
             try {
@@ -258,13 +253,14 @@ public class TeeVideoDownloader {
         Predicate<VideoFormat> filterAudioCodecs = vf -> {
 
             //  Discard if Acodec doesn't exists or if Vcodec does exists
-            if (vf.acodec.contains("none") || !vf.vcodec.contains("none"))
-                return false;
+            /*if (!vf.acodec.contains("none") || !vf.vcodec.contains("none"))
+                return false;*/
+            return !vf.acodec.contains("none");
 
-            return !vf.acodec.toLowerCase().contains("opus");
+//            return vf.acodec.toLowerCase().contains("opus");
         };
 
-        Predicate<VideoFormat> filterOffVP9VCodec = vf -> !vf.vcodec.toLowerCase().contains("vp9");
+//        Predicate<VideoFormat> filterOffVP9VCodec = vf -> !vf.vcodec.toLowerCase().contains("vp9");
 
         String divider = "\n\n\n===================================\n\n\n";
         System.out.println("Before Filter :" + divider);
@@ -276,39 +272,66 @@ public class TeeVideoDownloader {
 
 //        Consumer<VideoFormat> consumer = System.out::println;
         Consumer<VideoFormat> consumerDownloadVideoStream = vf -> {
+
+            System.out.println("==vf : " + vf.ext);
+            //  Check for MP4 format
+            if (vf.ext.toLowerCase().equals("mp4") || !mustKeepMP4) shouldDirectlyCopyVideoStream.set(true);
+
             String fName = title + "." + vf.ext;
             fName = fName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
-            vFile = new File(TEMP_DIR_PATH, fName);
-            downloadOffUrl(vf.url, vFile);
+            vFile = new File(tempDirPath, fName);
+            downloadManager.downloadOffUrl2(vf.url, vFile);
         };
 
         Consumer<VideoFormat> consumerDownloadAudioStream = vf -> {
+
+            boolean isAudioExtMp4 = vf.ext.equals("mp4");
+            String targetExt;
+
+            //  Check for M4A format
+            if (vf.ext.equals("m4a") || isAudioExtMp4) shouldDirectlyCopyAudioStreams.set(true);
+
+//            String audioExt = isAudioExtMp4 ? "_DUAL" : vf.ext;
             String fName = title + "." + vf.ext;
             fName = fName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
-            aFile = new File(TEMP_DIR_PATH, fName);
-            downloadOffUrl(vf.url, aFile);
+            aFile = new File(tempDirPath, fName);
+            downloadManager.downloadOffUrl2(vf.url, aFile);
+
+            if (isAudioExtMp4) {
+                targetExt = vf.acodec.contains("mp4a") ? "aac" : "m4a";
+                try {
+                    File tempFile = FFMPEGWrapper.extractAudioFileOffVideo(aFile, targetExt);
+//                System.out.println("===!!!!");
+                    Files.deleteIfExists(aFile.toPath());
+                    aFile = tempFile;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         };
+
+        //  Download Audio Stream..!!
+        formats.stream()
+                .filter(filterAudioCodecs)
+                .sorted(comparatorHighToLowABR)
+                .limit(1)
+                .forEach(consumerDownloadAudioStream);
 
         //  Download Video Stream..!!
         formats.stream()
                 .sorted(comparatorHighToLowResolution)
                 .filter(filterQuality)
                 .sorted(comparatorHighToLowTBR)
-                .filter(filterOffVP9VCodec)
+//                .filter(filterOffVP9VCodec)
                 .limit(1)
                 .forEach(consumerDownloadVideoStream);
 
-        //  Download Audio Stream..!!
-        formats.stream()
-                .filter(filterAudioCodecs)
-                .sorted(comparatorHighToLowTBR)
-                .limit(1)
-                .forEach(consumerDownloadAudioStream);
-
+//        System.out.println("== vFile : " + vFile.getAbsolutePath());
         //  Merge Video & Audio Streams (files) together using FFMPEG
         int dotIndex = vFile.getName().lastIndexOf('.');
         String ext = ".mkv";
         String targetFileName = "";
+
         if (isPlaylist) {
             if (totalNumOfVids < 10)
                 targetFileName = String.format("%d. ", serialNumPrefix);
@@ -320,103 +343,19 @@ public class TeeVideoDownloader {
                 targetFileName = String.format("%4d. ", serialNumPrefix);
             serialNumPrefix++;
         }
+
         targetFileName += vFile.getName().substring(0, dotIndex) + ext;
-//        targetFileName = targetFileName.replaceAll("\\\\/", "-");
         File targetFile = new File(srcDir, targetFileName);
 
-        mergeVideoAndAudioStreams(targetFile, aFile, vFile);
-
+        //  Merge by using ffmpeg
+        mergeVideoAndAudioStreams(targetFile, aFile, vFile, shouldDirectlyCopyAudioStreams.get(), shouldDirectlyCopyVideoStream.get());
         System.out.println("END!!!" + "\n\n\n===================================\n\n\n");
 
     }
 
-    private void downloadLeftover(String resourceUrl) {
+    private void mergeVideoAndAudioStreams(File targetFile, File aFile, File vFile, boolean shouldDirectlyCopyAudioStream, boolean shouldDirectlyCopyVideoStream) {
 
-        /*
-            orig :      14765858
-            dx =         3691464        7382928         11074392            14765856
-            downloaded   0-3691463  3691464-7382927    7382928-11074391  11074392-14765855
-            remaining :
-
-         */
-        long i3 = System.nanoTime();
-        try {
-
-            long j = startingIndexForEachThread;
-            System.out.println("jjjj == >  " + j);
-            URL urlObj0 = new URL(resourceUrl);
-            HttpURLConnection urlConnection = (HttpURLConnection) urlObj0.openConnection();
-            urlConnection.addRequestProperty("Range", "bytes=" + j + "-");// /*j + */"-" + ( remainingDataToDownload));
-
-            String fileName = "A-" + ++indexFileName + ".part";
-            File tempTargetFile1 = new File(TEMP_DIR_PATH, fileName);
-
-            int rc = urlConnection.getResponseCode();
-            if (rc < 0)
-                System.out.println("\nnum1 : " + rc);
-            else
-                System.out.println("\nnum2 : " + rc);
-
-            try (ReadableByteChannel readableByteChannel = Channels.newChannel(urlConnection.getInputStream());
-                 FileChannel fileChannel = new FileOutputStream(tempTargetFile1).getChannel()) {
-
-                long tempTotalBytesTransferred = 0;
-                System.out.println("Thread started with FP : " + j);
-
-                tempTotalBytesTransferred += fileChannel.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-                System.out.println("temp 1: " + tempTotalBytesTransferred);
-                updateSharedCurrentFilePointer(tempTotalBytesTransferred);
-                filePartsList.add(tempTargetFile1);
-                System.out.println("Thread Completed | fp : " + sharedCurrentFilePointer);
-            }
-
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("IO ERROR!!!");
-        }
-        System.out.println("time taken : " + (System.nanoTime() - i3) / 1E9 + " sec.");
-
-    }
-
-    private void combineFileParts(List<File> filePartsList, File destinationFile) {
-
-        long i1 = System.nanoTime();
-
-        long pos = 0;
-
-        for (int i = 1; i <= filePartsList.size(); i++) {
-
-            String fName = "A-" + i + ".part";
-            File f = new File(TEMP_DIR_PATH, fName);
-            System.out.println("f : " + f.getName());
-            System.out.println("pos : " + pos);
-
-            try (FileInputStream fis = new FileInputStream(f);
-                 ReadableByteChannel rbc = Channels.newChannel(fis);
-                 FileOutputStream fos = new FileOutputStream(destinationFile, true);
-                 FileChannel fc = fos.getChannel()) {
-
-                fc.position(pos * pos);
-                fc.transferFrom(rbc, pos, Long.MAX_VALUE);
-                pos += f.length();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        }
-
-        System.out.println("Target File Size : " + destinationFile.length());
-
-
-        System.out.println((System.nanoTime() - i1) / 1E9 + " seconds");
-
-    }
-
-    private void mergeVideoAndAudioStreams(File targetFile, File aFile, File vFile) {
-
-        FFMPEGWrapper ffmpegWrapper = new FFMPEGWrapper(targetFile, aFile, vFile);
+        FFMPEGWrapper ffmpegWrapper = new FFMPEGWrapper(targetFile, aFile, vFile, shouldDirectlyCopyAudioStream, shouldDirectlyCopyVideoStream, this.EXTENSION);
 
         try {
             ffmpegWrapper.startMerging();
@@ -429,184 +368,4 @@ public class TeeVideoDownloader {
 
     }
 
-    private void reset() {
-
-        sharedCurrentFilePointer = 0;
-        startingIndexForEachThread = 0;
-        indexFileName = 0;
-
-        try {
-
-            for (File f : filePartsList) Files.delete(f.toPath());
-
-        } catch (IOException e) {
-            System.out.println("Unable to Clean Downloaded File Parts...");
-            e.printStackTrace();
-        }
-        System.out.println("File Parts Cleaned Successfully..!!");
-
-        filePartsList = null;
-        filePartsList = new ArrayList<>();
-
-    }
-
-    private void downloadOffUrl(String resourceUrl, File targetFile) {
-
-        long i1 = System.nanoTime();
-
-//        System.out.println("URL : " + resourceUrl);
-
-        downloadManager.downloadOffUrl(resourceUrl, targetFile);
-
-        /*try {
-
-            final URL urlObj = new URL(resourceUrl);
-            final long fileLength = Long.parseLong(urlObj.openConnection().getHeaderFields().get("Content-Length").get(0));
-            System.out.println("File Length 0: " + fileLength);
-
-            final long dx = fileLength / THREAD_COUNT;   //  Downloaded by Each Thread
-            final long remainingDataToDownload = fileLength % THREAD_COUNT; //  Download At End
-
-            Runnable runnable = () -> {
-            *//*
-                Time Stamp : 22nd August 2K19, 12:56 AM..!!
-                sharedCurrentFilePointer -> value of i i.e. current Pos.
-                        Following Condition :
-                (sharedCurrentFilePointer + buffer.length > fileLength) == true
-                only when the Main Thread has completed the Processing.
-             *//*
-                while (sharedCurrentFilePointer < fileLength) {
-                    System.out.print((sharedCurrentFilePointer * 100 / fileLength) + "%");
-
-                    try {
-                        Thread.sleep(100);
-//                        this.wait(1000);
-                        System.out.print("\b\b\b");
-
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-                System.out.print("\b\b\b");
-                System.out.println("100%\nFile Downloaded Successfully!");
-
-            };
-            Thread displayPercentageThread = new Thread(runnable);
-            displayPercentageThread.start();
-
-            Runnable downloaderRunnable = () -> {
-
-                long i3 = System.nanoTime();
-                try {
-
-                    long j = startingIndexForEachThread;
-
-                    HttpURLConnection urlConnection = (HttpURLConnection) urlObj.openConnection();
-                    urlConnection.addRequestProperty("Range", "bytes=" + j + "-" + (j + dx - 1));
-                    urlConnection.setConnectTimeout(0);
-
-                    String fileName = "A-" + ++indexFileName + ".part";
-                    File tempTargetFile1 = new File(TEMP_DIR_PATH, fileName);
-
-                    int rc = urlConnection.getResponseCode();
-                    System.out.println("\nnum1 : " + rc);
-
-                    try (ReadableByteChannel rbc = Channels.newChannel(urlConnection.getInputStream());
-                         FileOutputStream fileOutputStream = new FileOutputStream(tempTargetFile1);
-                         FileChannel fileChannel = fileOutputStream.getChannel()) {
-
-                        System.out.println("Thread started with FP : " + j);
-                        long tempTotalBytesTransferred = 0;
-                        tempTotalBytesTransferred += fileChannel.transferFrom(rbc, 0, Long.MAX_VALUE);
-                        System.out.println("temp 1: " + tempTotalBytesTransferred);
-
-                        updateSharedCurrentFilePointer(tempTotalBytesTransferred);
-                        filePartsList.add(tempTargetFile1);
-                        System.out.println("Thread Completed | fp : " + sharedCurrentFilePointer);
-
-                    }
-
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.out.println("ERROR!!!");
-                }
-                System.out.println("time taken : " + (System.nanoTime() - i3) / 1E9 + " sec.");
-            };
-
-            Thread[] threads = new Thread[THREAD_COUNT];
-
-            for (int i = 0; i < THREAD_COUNT; i++) {
-
-//                Thread.sleep(50);
-                System.out.println("Thread # : " + i);
-                Thread thread = new Thread(downloaderRunnable);
-//                while (!shouldCreateNewThread);
-                thread.start();
-                shouldCreateNewThread = false;
-                threads[i] = thread;
-                Thread.sleep(2000);
-//                thread.join();
-                startingIndexForEachThread += dx;
-
-            }
-
-            for (Thread t : threads) {
-                t.join();
-//                System.out.println("f : " + sharedCurrentFilePointer);
-            }
-
-            if (remainingDataToDownload != 0)
-                downloadLeftover(resourceUrl);
-
-            System.out.println("Download Completed!" +
-                    "\nMerging Downloaded Files now...");
-            combineFileParts(filePartsList, targetFile);
-
-            Thread.sleep(20);
-            displayPercentageThread.join();
-            System.out.println("fp : " + sharedCurrentFilePointer);
-//            sharedCurrentFilePointer = 0;
-
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }*/
-/*
-
-        System.out.println("\n\nDone!");
-
-        long i2 = System.nanoTime();
-        System.out.println("\n\nDownload Time : " + (i2 - i1) / 1E9);
-
-        reset();
-*/
-
-    }
-
 }
-
-/*
- *  Date Created: 25th April 2K19, 09:48 AM..!!
- *  Time Stamp: 21st September 2K19, 08:47 PM..!!
- *
- *  Project Name : Tee Video Downloader [TVD]
- *
- *  Status: Work In Progress
- *
- *  4th Commit - [Stable Downloading Playlist]
- *
- *  3rd Commit - [Downloading but Messed-up]
- *
- *  2nd Commit - [Debugging to Understand]
- *
- *  Init Commit. [Download Video]
- *
- *  Warning:
- *  This project is solely for educational purpose.
- *  It doesn't supports any piracy or copyright violations.
- *
- *  Code Developed By,
- *  ~K.O.H..!! ^__^
- */

@@ -2,10 +2,7 @@ package workspace;
 
 import libs.koh_youtube_dl.mapper.VideoFormat;
 import libs.koh_youtube_dl.mapper.VideoInfo;
-import libs.koh_youtube_dl.utils.DownloadManager;
-import libs.koh_youtube_dl.utils.FFMPEGWrapper;
-import libs.koh_youtube_dl.utils.VideoQuality;
-import libs.koh_youtube_dl.utils.VideoQualityOutOfScopeException;
+import libs.koh_youtube_dl.utils.*;
 import libs.koh_youtube_dl.youtubedl.YoutubeDL;
 import libs.koh_youtube_dl.youtubedl.YoutubeDLException;
 import libs.koh_youtube_dl.youtubedl.YoutubeDLRequest;
@@ -25,7 +22,7 @@ import java.util.stream.Collectors;
 
 public class TeeVideoDownloader {
 
-    private final String EXTENSION;
+    private String EXTENSION;
     private String tempDirPath;
     private int serialNumPrefix;
     private int totalNumOfVids;
@@ -38,6 +35,7 @@ public class TeeVideoDownloader {
     private VideoQuality foundTopScope;
     private VideoQuality preferredVideoQuality;
     private DownloadManager downloadManager;
+    private YoutubePlaylistPOJO youtubePlaylistPOJO;
 
     TeeVideoDownloader() {
         this(null, VideoQuality.Q_1080P, new File("."));
@@ -161,8 +159,10 @@ public class TeeVideoDownloader {
             System.out.println("Enter Src Dir.: ");
             srcDir = new File(scanner.nextLine());
             tempDirPath = srcDir + "/.temp";
+
             System.out.println("Download in MP4 Format Only? [Y/N] : ");
             mustKeepMP4 = scanner.nextLine().toLowerCase().charAt(0) == 'y';
+            this.EXTENSION = mustKeepMP4 ? "mp4" : "mkv";
 
             System.out.println("Enter Preferred Quality.: ");
             System.out.print("4000 | 2000 | 1080 | 720 |  480 | 360 | 240 | 144\n[?] : ");
@@ -198,6 +198,22 @@ public class TeeVideoDownloader {
             if (videoInfoList.size() > 1) {
                 isPlaylist = true;
                 totalNumOfVids = videoInfoList.size();
+
+                if (isPlaylist) {
+                    youtubePlaylistPOJO = new ScrapperYoutubePlaylist().acquireYTPOJO(mainUrl);
+                    String newDirName = youtubePlaylistPOJO.getTitle() + " ~"
+                            + youtubePlaylistPOJO.getChannelName() + " ["
+                            + youtubePlaylistPOJO.getVideosCount() + "]";
+                    this.srcDir = new File(srcDir, newDirName);
+
+                    if (this.srcDir.mkdirs()) System.out.println("Subfolder : "
+                            + this.srcDir.getAbsolutePath() + " Created Successfully!");
+                    else System.out.println("ERROR : Failed to create Subfolder : "
+                            + this.srcDir.getAbsolutePath());
+                }
+
+            } else {
+                System.out.println("Found Single Video!");
             }
 
             videoInfoList.forEach(consumerParseVideoInfo);
@@ -345,7 +361,7 @@ public class TeeVideoDownloader {
         }
 
         targetFileName += vFile.getName().substring(0, dotIndex) + ext;
-        File targetFile = new File(srcDir, targetFileName);
+        File targetFile = new File(this.srcDir, targetFileName);
 
         //  Merge by using ffmpeg
         mergeVideoAndAudioStreams(targetFile, aFile, vFile, shouldDirectlyCopyAudioStreams.get(), shouldDirectlyCopyVideoStream.get());
@@ -356,13 +372,15 @@ public class TeeVideoDownloader {
     private void mergeVideoAndAudioStreams(File targetFile, File aFile, File vFile, boolean shouldDirectlyCopyAudioStream, boolean shouldDirectlyCopyVideoStream) {
 
         FFMPEGWrapper ffmpegWrapper = new FFMPEGWrapper(targetFile, aFile, vFile, shouldDirectlyCopyAudioStream, shouldDirectlyCopyVideoStream, this.EXTENSION);
-
+        System.out.println("EXTENSION : " + EXTENSION);
+        System.out.println("tf : " + targetFile.getAbsolutePath());
         try {
             ffmpegWrapper.startMerging();
             Files.delete(vFile.toPath());
             Files.delete(aFile.toPath());
 
         } catch (IOException e) {
+            System.out.println("IOException [04] : Failed to Merge Audio & Video Streams");
             e.printStackTrace();
         }
 

@@ -25,7 +25,7 @@ public class App {
         String url = "https://www.youtube.com/watch?v=HyNW_4w9IQ0"; //  360p
 
         File file = new File("F:\\UNSORTED\\b\\00");
-        TeeVideoDownloader obj = new TeeVideoDownloader(null, VideoQuality.Q_4K, file, true);
+        TeeVideoDownloader obj = new TeeVideoDownloader(null, VideoQuality.Q_4K, file, false);
 //        TeeVideoDownloader obj = new TeeVideoDownloader();
         obj.start1();
 
@@ -35,11 +35,17 @@ public class App {
 
 /*
  *  Date Created: 25th April 2K19, 09:48 AM..!!
- *  Time Stamp: 11th November 2K19, 00:22 AM..!!
+ *  Time Stamp: 12th November 2K19, 07:06 PM..!!
  *
  *  Project Name : Tee Video Downloader [TVD]
  *
  *  Status: Stable - Accurate Extensions Conversion
+ *
+ *  9th Commit - [YTPlaylistPOJO]
+ *  1. Added YTPlaylistPOJO for the Youtube Playlist Title, Channel Name and videos count
+ *  2. Using Jsoup Library to scrap off YoutubePlaylistPOJO off the mainUrl via ScrapperYoutubePlaylist
+ *  3. Creating Subfolder when Youtube Playlist is found
+ *  4. Fixed EXTENSION to mp4 and mkv according to mustKeepMP4
  *
  *  8th Commit - [TVD-Test-02.jar]
  *  1. Updated DownloadManager with support to download files which do not support downloading in chunks

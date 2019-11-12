@@ -460,7 +460,11 @@ public class DownloadManager {
 
         try {
 
-            for (File f : filePartsList) Files.delete(f.toPath());
+            for (File f : filePartsList) {
+                boolean isDeleted = Files.deleteIfExists(f.toPath());
+                if (!isDeleted)
+                    System.out.println("ERROR | Exception : Unable to delete : " + f.getAbsolutePath());
+            }
 
         } catch (IOException e) {
             System.out.println("Unable to Clean Downloaded File Parts...");

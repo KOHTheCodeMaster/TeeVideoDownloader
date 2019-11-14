@@ -122,19 +122,32 @@ class ScrapperYoutubePlaylist {
     private Document initializeDocument(String url) {
 
         Document document = null;
-        try {
+        int retryAttempts = 5;
 
-            System.out.println("Establishing Connection.");
+        while (retryAttempts >= 0) {
 
-            //  Establish Connection to the HTML Page of the url.
-            document = Jsoup.connect(url).get();
-            System.out.println("Connection Established Successfully.");
+            try {
 
-        } catch (IOException e) {
-            System.out.println("Connection Failed.");
-            System.exit(-204);
+                System.out.println("Establishing Connection.");
+
+                //  Establish Connection to the HTML Page of the url.
+                document = Jsoup.connect(url).get();
+                if (document == null) {
+                    retryAttempts--;
+                    System.out.println("Connection Failed." +
+                            "\nRetry Attempts Left : " + retryAttempts);
+                } else break;
+
+            } catch (IOException e) {
+                System.out.println("Connection Failed.");
+                System.exit(-204);
+            }
         }
 
+        if (document == null) {
+            System.out.println("Unable to establish connection with Url : " + url);
+            System.exit(-205);
+        } else System.out.println("Connection Established Successfully.");
         return document;
 
     }

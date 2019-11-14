@@ -33,7 +33,7 @@ public enum VideoQuality {
          *  if not then it'll be checked in descending order starting from 720P until 144P width range.
          */
 
-        int wdx = 100;
+        int wdx = 200;  //  Width Margin
 
         if (width < Q_4K.width + wdx && width > Q_4K.width - wdx)
             return Q_4K;

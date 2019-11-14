@@ -35,11 +35,22 @@ public class App {
 
 /*
  *  Date Created: 25th April 2K19, 09:48 AM..!!
- *  Time Stamp: 12th November 2K19, 07:06 PM..!!
+ *  Time Stamp: 14th November 2K19, 10:36 PM..!!
  *
  *  Project Name : Tee Video Downloader [TVD]
  *
- *  Status: Stable - Accurate Extensions Conversion
+ *  Status: Stable - Exceptions Handled
+ *
+ *  10th Commit - [Handled Exceptions]
+ *  1. Handled Most of the Exceptions well including SSL and ConnectionException
+ *  2. Fixed illegal file names using regex
+ *     Playlist Title for Subfolder and Video Title File name
+ *  3. Appending Additional Zeros when Playlist has more than 9 videos
+ *  4. Updated VideoQuality margin from 100 to 200 to cover more videos with width of 1080P & 720P
+ *  5. Added MyConnectionUtil class to improve Performance by migrating file channels to
+ *     individual DownloaderThread and establish url connection at the time of download itself
+ *  Bugs To Fix:
+ *  1. Connection Time Out Exception in DownloaderThread
  *
  *  9th Commit - [YTPlaylistPOJO]
  *  1. Added YTPlaylistPOJO for the Youtube Playlist Title, Channel Name and videos count

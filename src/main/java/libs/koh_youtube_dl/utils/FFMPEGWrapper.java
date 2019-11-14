@@ -119,24 +119,12 @@ public class FFMPEGWrapper {
     public void startMerging() throws IOException {
 
         long startTime = System.nanoTime();
-
-        int dotIndex = videoStreamFile.getName().lastIndexOf('.');
-//        String ext = ".mkv";
-//        String targetFileName = videoStreamFile.getName().substring(0, dotIndex) + ext;
-//        targetFileName = targetFileName.replaceAll("\\\\/", "-");
-
-        System.out.println("dotIndex : " + dotIndex);
-        System.out.println("vsf : " + videoStreamFile.getAbsolutePath());
-
         String[] commandArr = buildCommand();
 
         //  inheritIO() method ensures that the process
         //  Output is redirected to the Java Program Console at realtime
         Process process;
         ProcessBuilder processBuilder = new ProcessBuilder(commandArr);//.inheritIO();
-
-//        if (targetFile != null && targetFile.isDirectory())
-//            processBuilder.directory(targetFile);
 
         StringBuffer outBuffer = new StringBuffer();
         StringBuffer errBuffer = new StringBuffer();

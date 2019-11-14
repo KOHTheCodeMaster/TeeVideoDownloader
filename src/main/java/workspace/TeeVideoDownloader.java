@@ -5,8 +5,6 @@ import libs.koh_youtube_dl.mapper.VideoInfo;
 import libs.koh_youtube_dl.utils.*;
 import libs.koh_youtube_dl.youtubedl.YoutubeDL;
 import libs.koh_youtube_dl.youtubedl.YoutubeDLException;
-import libs.koh_youtube_dl.youtubedl.YoutubeDLRequest;
-import libs.koh_youtube_dl.youtubedl.YoutubeDLResponse;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,7 +16,6 @@ import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class TeeVideoDownloader {
 
@@ -35,7 +32,6 @@ public class TeeVideoDownloader {
     private VideoQuality foundTopScope;
     private VideoQuality preferredVideoQuality;
     private DownloadManager downloadManager;
-    private YoutubePlaylistPOJO youtubePlaylistPOJO;
 
     TeeVideoDownloader() {
         this(null, VideoQuality.Q_1080P, new File("."));
@@ -59,73 +55,6 @@ public class TeeVideoDownloader {
 //        TeeVideoDownloader obj = new TeeVideoDownloader();
 //        obj.start1();
 //        major();
-
-    }
-
-    private static void f1() {
-//        String url = "https://www.youtube.com/watch?v=thwrK4tHbwo";
-//        String url = "https://www.youtube.com/watch?v=HHYcxYVM1DM";
-//        String url = "https://www.youtube.com/watch?v=LXb3EKWsInQ&t=19s";
-//        String url = "https://www.youtube.com/watch?v=1La4QzGeaaQ";
-//        String url = "https://www.youtube.com/watch?v=LRJmUWfI0ZY"; //  10 sec
-//        String url = "https://www.youtube.com/watch?v=Wjrrgrvq1ew"; //  10 sec
-//        String url = "https://www.youtube.com/watch?v=fPrixQcSPyM"; //  Avengers
-//        String url = "https://www.youtube.com/watch?v=CXjjGE3k5PY"; //  16 sec
-//        String url = "https://www.youtube.com/watch?v=zJ7hUvU-d2Q"; //  16 sec
-        String url = "https://www.youtube.com/watch?v=2uMc3rNnTo4"; //  1 hr
-
-        try {
-
-            VideoInfo videoInfo = YoutubeDL.getVideoInfoList(url).get(0);
-
-//            System.out.println(videoInfo.formats);
-//            System.out.println(videoInfo);
-//            Predicate<VideoFormat> predicate = vf -> vf.formatId.equals("22");
-//            Predicate<VideoFormat> filterWidthBelow600 = vf -> vf.width > 600;
-            Comparator<VideoFormat> comparatorHighToLowResolution =
-                    Comparator.comparingInt(vf -> -1 * (vf.width + vf.height));
-//            Consumer<VideoFormat> consumer = c -> c.
-            List<VideoFormat> filteredVideoFormats = videoInfo.formats
-                    .stream()
-//                    .filter(filterWidthBelow600)
-                    .sorted(comparatorHighToLowResolution)
-                    .collect(Collectors.toList());
-
-            System.out.println(filteredVideoFormats);
-
-
-        } catch (YoutubeDLException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    private static void major() {
-
-        // Video url to download
-        String videoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-
-        // Destination directory
-        String directory = "res/downloaded/2";
-
-        // Build request
-        YoutubeDLRequest request = new YoutubeDLRequest(videoUrl, directory);
-        request.setOption("ignore-errors");        // --ignore-errors
-        request.setOption("output", "%(title)s.mp4");    // --output "%(id)s"
-        request.setOption("retries", 10);        // --retries 10
-
-        // Make request and return response
-        YoutubeDLResponse response = null;
-        try {
-            response = YoutubeDL.execute(request);
-        } catch (YoutubeDLException e) {
-            e.printStackTrace();
-        }
-
-        // Response
-//        String stdOut = response.getOut(); // Executable output
-
-        System.out.println(response);
 
     }
 
@@ -200,10 +129,11 @@ public class TeeVideoDownloader {
                 totalNumOfVids = videoInfoList.size();
 
                 if (isPlaylist) {
-                    youtubePlaylistPOJO = new ScrapperYoutubePlaylist().acquireYTPOJO(mainUrl);
+                    YoutubePlaylistPOJO youtubePlaylistPOJO = new ScrapperYoutubePlaylist().acquireYTPOJO(mainUrl);
                     String newDirName = youtubePlaylistPOJO.getTitle() + " ~"
                             + youtubePlaylistPOJO.getChannelName() + " ["
                             + youtubePlaylistPOJO.getVideosCount() + "]";
+                    newDirName = newDirName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
                     this.srcDir = new File(srcDir, newDirName);
 
                     if (this.srcDir.mkdirs()) System.out.println("Subfolder : "
@@ -296,7 +226,7 @@ public class TeeVideoDownloader {
             String fName = title + "." + vf.ext;
             fName = fName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
             vFile = new File(tempDirPath, fName);
-            downloadManager.downloadOffUrl2(vf.url, vFile);
+            downloadManager.downloadOffUrl(vf.url, vFile);
         };
 
         Consumer<VideoFormat> consumerDownloadAudioStream = vf -> {
@@ -311,7 +241,7 @@ public class TeeVideoDownloader {
             String fName = title + "." + vf.ext;
             fName = fName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
             aFile = new File(tempDirPath, fName);
-            downloadManager.downloadOffUrl2(vf.url, aFile);
+            downloadManager.downloadOffUrl(vf.url, aFile);
 
             if (isAudioExtMp4) {
                 targetExt = vf.acodec.contains("mp4a") ? "aac" : "m4a";
@@ -326,6 +256,7 @@ public class TeeVideoDownloader {
             }
         };
 
+        System.out.println("Downloading Audio Now!");
         //  Download Audio Stream..!!
         formats.stream()
                 .filter(filterAudioCodecs)
@@ -333,6 +264,8 @@ public class TeeVideoDownloader {
                 .limit(1)
                 .forEach(consumerDownloadAudioStream);
 
+        System.out.println("Audio Part Downloaded Successfully!");
+        System.out.println("Downloading Video Now!");
         //  Download Video Stream..!!
         formats.stream()
                 .sorted(comparatorHighToLowResolution)
@@ -341,8 +274,9 @@ public class TeeVideoDownloader {
 //                .filter(filterOffVP9VCodec)
                 .limit(1)
                 .forEach(consumerDownloadVideoStream);
+        System.out.println("Video Part Downloaded Successfully!");
+        System.out.println("Merging Audio and Video Files now!");
 
-//        System.out.println("== vFile : " + vFile.getAbsolutePath());
         //  Merge Video & Audio Streams (files) together using FFMPEG
         int dotIndex = vFile.getName().lastIndexOf('.');
         String ext = ".mkv";
@@ -352,15 +286,16 @@ public class TeeVideoDownloader {
             if (totalNumOfVids < 10)
                 targetFileName = String.format("%d. ", serialNumPrefix);
             else if (totalNumOfVids < 100)
-                targetFileName = String.format("%2d. ", serialNumPrefix);
+                targetFileName = String.format("%02d. ", serialNumPrefix);
             else if (totalNumOfVids < 1000)
-                targetFileName = String.format("%3d. ", serialNumPrefix);
+                targetFileName = String.format("%03d. ", serialNumPrefix);
             else
-                targetFileName = String.format("%4d. ", serialNumPrefix);
+                targetFileName = String.format("%04d. ", serialNumPrefix);
             serialNumPrefix++;
         }
 
         targetFileName += vFile.getName().substring(0, dotIndex) + ext;
+        targetFileName = targetFileName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
         File targetFile = new File(this.srcDir, targetFileName);
 
         //  Merge by using ffmpeg
@@ -372,8 +307,8 @@ public class TeeVideoDownloader {
     private void mergeVideoAndAudioStreams(File targetFile, File aFile, File vFile, boolean shouldDirectlyCopyAudioStream, boolean shouldDirectlyCopyVideoStream) {
 
         FFMPEGWrapper ffmpegWrapper = new FFMPEGWrapper(targetFile, aFile, vFile, shouldDirectlyCopyAudioStream, shouldDirectlyCopyVideoStream, this.EXTENSION);
-        System.out.println("EXTENSION : " + EXTENSION);
-        System.out.println("tf : " + targetFile.getAbsolutePath());
+//        System.out.println("EXTENSION : " + EXTENSION);
+//        System.out.println("tf : " + targetFile.getAbsolutePath());
         try {
             ffmpegWrapper.startMerging();
             Files.delete(vFile.toPath());

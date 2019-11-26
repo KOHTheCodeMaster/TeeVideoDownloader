@@ -108,7 +108,6 @@ public class YoutubeDL {
 
         YoutubeDLRequest request = new YoutubeDLRequest(url);
         request.setOption("dump-json");
-//        request.setOption("no-playlist");
 
         YoutubeDLResponse response = execute(request);
         ObjectMapper objectMapper = new ObjectMapper();
@@ -117,7 +116,6 @@ public class YoutubeDL {
 
             String strJsonArray = processJson(response.getOut());
             videoInfoList = Arrays.asList(objectMapper.readValue(strJsonArray, VideoInfo[].class));
-//            List<VideoInfo> arrayList = objectMapper.readValue(strJson, new TypeReference<List<VideoInfo>>(){});
             return videoInfoList;
 
         } catch (IOException var6) {
@@ -132,12 +130,6 @@ public class YoutubeDL {
          *  jsonUnprocessed => Array of Json String with missing pair of [ ]
          *  & ',' after every element (ending with new line '\n')
          */
-        /*
-            videoInfo = (VideoInfo) objectMapper.readValue(response.getOut(), VideoInfo.class);
-            String s1 = "[{\"id\": \"WvR9voi0y2I\", \"uploader\": \"TheHappieCat\"},\n" +
-                    "{\"id\": \"LDCa4U-ZbJ0\", \"uploader\": \"TheHappieCat456\"},\n" +
-                    "{\"id\": \"FsParg61xGw\", \"uploader\": \"TheHappieCat123\"}]";
-            */
 
         return "[" +
                 jsonUnprocessed.substring(0, jsonUnprocessed.lastIndexOf('\n'))

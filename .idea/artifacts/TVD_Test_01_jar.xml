@@ -1,5 +1,5 @@
 <component name="ArtifactManager">
-  <artifact type="jar" build-on-make="true" name="TVD-Test-01:jar">
+  <artifact type="jar" name="TVD-Test-01:jar">
     <output-path>$PROJECT_DIR$/out/artifacts/TVD_Test_01_jar</output-path>
     <root id="archive" name="TeeVideoDownloader.jar">
       <element id="directory" name="META-INF">

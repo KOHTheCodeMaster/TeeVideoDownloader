@@ -136,6 +136,7 @@ public enum VideoQuality {
 
     }
 
+/*
     public int getWidth() {
         return width;
     }
@@ -143,5 +144,6 @@ public enum VideoQuality {
     public int getHeight() {
         return height;
     }
+*/
 
 }

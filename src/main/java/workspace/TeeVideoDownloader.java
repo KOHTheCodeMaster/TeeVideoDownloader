@@ -17,54 +17,63 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+/**
+ * The type Tee video downloader.
+ */
 public class TeeVideoDownloader {
 
     private String EXTENSION;
     private String tempDirPath;
     private int serialNumPrefix;
     private int totalNumOfVids;
-    private volatile boolean isPlaylist;
+    private boolean isPlaylist;
     private boolean mustKeepMP4;
     private String mainUrl;
-    private File srcDir;
+    private File defaultDownloadDir;
     private File aFile;
     private File vFile;
     private VideoQuality foundTopScope;
     private VideoQuality preferredVideoQuality;
     private DownloadManager downloadManager;
 
-    TeeVideoDownloader() {
-        this(null, VideoQuality.Q_1080P, new File("."));
+    /**
+     * Instantiates a new Tee video downloader.
+     *
+     * @param mainUrl               main url for youtube video or playlist
+     * @param preferredVideoQuality the preferred video quality for downloads
+     * @param defaultDownloadDir    default save directory for downloads
+     */
+    TeeVideoDownloader(String mainUrl, VideoQuality preferredVideoQuality, File defaultDownloadDir) {
+        this(mainUrl, preferredVideoQuality, defaultDownloadDir, false);
     }
 
-    TeeVideoDownloader(String mainUrl, VideoQuality preferredVideoQuality, File srcDir) {
-        this(mainUrl, preferredVideoQuality, srcDir, false);
-    }
-
-    TeeVideoDownloader(String mainUrl, VideoQuality preferredVideoQuality, File srcDir, boolean mustKeepMP4) {
+    /**
+     * Instantiates a new Tee video downloader.
+     *
+     * @param mainUrl               main url for youtube video or playlist
+     * @param preferredVideoQuality the preferred video quality for downloads
+     * @param defaultDownloadDir    default save directory for downloads
+     * @param mustKeepMP4           must keep the files in MP4 format & if not found then forcefully convert in MP4 using ffmpeg
+     */
+    TeeVideoDownloader(String mainUrl, VideoQuality preferredVideoQuality, File defaultDownloadDir, boolean mustKeepMP4) {
         this.preferredVideoQuality = preferredVideoQuality;
         this.mainUrl = mainUrl;
-        this.srcDir = srcDir;
-        this.tempDirPath = srcDir + "/.temp";
+        this.defaultDownloadDir = defaultDownloadDir;
+        this.tempDirPath = defaultDownloadDir + "/.temp";
         this.mustKeepMP4 = mustKeepMP4;
         this.EXTENSION = mustKeepMP4 ? "mp4" : "mkv";
     }
 
-    public static void main(String[] args) {
-
-//        TeeVideoDownloader obj = new TeeVideoDownloader();
-//        obj.start1();
-//        major();
-
-    }
-
-    void start1() {
+    /**
+     * Begin TVD.
+     */
+    void begin() {
 
         System.out.println("Begin.");
         long i1 = System.nanoTime();
 
         init();
-        begin();
+        parseUrl(mainUrl);
 
         long i2 = System.nanoTime();
         System.out.println("\n\nTotal Time : " + (i2 - i1) / 1E9);
@@ -73,36 +82,10 @@ public class TeeVideoDownloader {
 
     }
 
-    private void begin() {
-
-        parseUrl(mainUrl);
-
-    }
-
-    private void initializeDataMembers() {
-
-        Scanner scanner = new Scanner(System.in);
-        if (mainUrl == null) {
-            System.out.println("Enter MAIN URL: ");
-            mainUrl = scanner.nextLine();
-            System.out.println("Enter Src Dir.: ");
-            srcDir = new File(scanner.nextLine());
-            tempDirPath = srcDir + "/.temp";
-
-            System.out.println("Download in MP4 Format Only? [Y/N] : ");
-            mustKeepMP4 = scanner.nextLine().toLowerCase().charAt(0) == 'y';
-            this.EXTENSION = mustKeepMP4 ? "mp4" : "mkv";
-
-            System.out.println("Enter Preferred Quality.: ");
-            System.out.print("4000 | 2000 | 1080 | 720 |  480 | 360 | 240 | 144\n[?] : ");
-            preferredVideoQuality = VideoQuality.chooseVideoQuality();
-        }
-
-    }
-
     private void init() {
 
         initializeDataMembers();
+        fixupMainUrl();
 
         downloadManager = new DownloadManager(tempDirPath);
         serialNumPrefix = 1;
@@ -115,12 +98,52 @@ public class TeeVideoDownloader {
 
     }
 
+    /**
+     * Fix the mainUrl for single video url by stripping off the additional characters.
+     * Single Video url consists of "youtube.com/watch?v=" followed by 11 characters of unique video id.
+     */
+    private void fixupMainUrl() {
+
+        System.out.println("Before MainUrl : " + mainUrl);
+
+        String singleVideoUrlPreset = "youtube.com/watch?v=";
+        final int YOUTUBE_VIDEO_ID_LENGTH = 11;
+        int pos = mainUrl.indexOf(singleVideoUrlPreset) - 1;
+
+        if (pos > 0)  //  mainUrl contains singleVideoUrlPreset
+            mainUrl = mainUrl.substring(0, pos + singleVideoUrlPreset.length() + YOUTUBE_VIDEO_ID_LENGTH + 1);
+
+//        System.out.println(pos + " " + singleVideoUrlPreset.length() + " " + mainUrl.length());
+        System.out.println("After MainUrl : " + mainUrl);
+    }
+
+    private void initializeDataMembers() {
+
+        Scanner scanner = new Scanner(System.in);
+        if (mainUrl == null) {
+            System.out.println("Enter MAIN URL: ");
+            mainUrl = scanner.nextLine();
+            System.out.println("Enter Src Dir.: ");
+            defaultDownloadDir = new File(scanner.nextLine());
+            tempDirPath = defaultDownloadDir + "/.temp";
+
+            System.out.println("Download in MP4 Format Only? [Y/N] : ");
+            mustKeepMP4 = scanner.nextLine().toLowerCase().charAt(0) == 'y';
+            this.EXTENSION = mustKeepMP4 ? "mp4" : "mkv";
+
+            System.out.println("Enter Preferred Quality.: ");
+            System.out.print("4000 | 2000 | 1080 | 720 |  480 | 360 | 240 | 144\n[?] : ");
+            preferredVideoQuality = VideoQuality.chooseVideoQuality();
+        }
+
+    }
+
     private void parseUrl(String url) {
 
         try {
 
             Consumer<VideoInfo> consumerParseVideoInfo = vi ->
-                    downloadVI(vi.formats, srcDir, preferredVideoQuality, vi.title);
+                    downloadVI(vi.formats, defaultDownloadDir, preferredVideoQuality, vi.title);
 
             List<VideoInfo> videoInfoList = YoutubeDL.getVideoInfoList(url);
 
@@ -128,19 +151,17 @@ public class TeeVideoDownloader {
                 isPlaylist = true;
                 totalNumOfVids = videoInfoList.size();
 
-                if (isPlaylist) {
-                    YoutubePlaylistPOJO youtubePlaylistPOJO = new ScrapperYoutubePlaylist().acquireYTPOJO(mainUrl);
-                    String newDirName = youtubePlaylistPOJO.getTitle() + " ~"
-                            + youtubePlaylistPOJO.getChannelName() + " ["
-                            + youtubePlaylistPOJO.getVideosCount() + "]";
-                    newDirName = newDirName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
-                    this.srcDir = new File(srcDir, newDirName);
+                YoutubePlaylistPOJO youtubePlaylistPOJO = new ScrapperYoutubePlaylist().acquireYTPOJO(mainUrl);
+                String newDirName = youtubePlaylistPOJO.getTitle() + " ~"
+                        + youtubePlaylistPOJO.getChannelName() + " ["
+                        + youtubePlaylistPOJO.getVideosCount() + "]";
+                newDirName = newDirName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
+                this.defaultDownloadDir = new File(defaultDownloadDir, newDirName);
 
-                    if (this.srcDir.mkdirs()) System.out.println("Subfolder : "
-                            + this.srcDir.getAbsolutePath() + " Created Successfully!");
-                    else System.out.println("ERROR : Failed to create Subfolder : "
-                            + this.srcDir.getAbsolutePath());
-                }
+                if (this.defaultDownloadDir.mkdirs()) System.out.println("Subfolder : "
+                        + this.defaultDownloadDir.getAbsolutePath() + " Created Successfully!");
+                else System.out.println("ERROR : Failed to create Subfolder : "
+                        + this.defaultDownloadDir.getAbsolutePath());
 
             } else {
                 System.out.println("Found Single Video!");
@@ -157,7 +178,7 @@ public class TeeVideoDownloader {
 
     }
 
-    private void downloadVI(ArrayList<VideoFormat> formats, File srcDir, VideoQuality preferredVideoQuality, String title) {
+    private void downloadVI(ArrayList<VideoFormat> formats, File defaultDownloadDir, VideoQuality preferredVideoQuality, String title) {
 
         foundTopScope = null;
         AtomicBoolean shouldDirectlyCopyVideoStream = new AtomicBoolean(false);
@@ -195,7 +216,6 @@ public class TeeVideoDownloader {
                 return false;
             }
         };
-
         Predicate<VideoFormat> filterAudioCodecs = vf -> {
 
             //  Discard if Acodec doesn't exists or if Vcodec does exists
@@ -296,7 +316,7 @@ public class TeeVideoDownloader {
 
         targetFileName += vFile.getName().substring(0, dotIndex) + ext;
         targetFileName = targetFileName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
-        File targetFile = new File(this.srcDir, targetFileName);
+        File targetFile = new File(this.defaultDownloadDir, targetFileName);
 
         //  Merge by using ffmpeg
         mergeVideoAndAudioStreams(targetFile, aFile, vFile, shouldDirectlyCopyAudioStreams.get(), shouldDirectlyCopyVideoStream.get());

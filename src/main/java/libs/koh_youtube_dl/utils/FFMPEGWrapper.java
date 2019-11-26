@@ -233,28 +233,4 @@ public class FFMPEGWrapper {
 
     }
 
-    private String buildCommand(boolean ignored) {
-
-        int dotIndex = videoStreamFile.getAbsolutePath().lastIndexOf('.');
-        String ext = ".mkv";
-
-        StringBuilder cmd;
-        cmd = new StringBuilder();
-        cmd.append(executablePath)
-                .append(" -i")
-                .append(" \"")
-                .append(audioStreamFile.getAbsolutePath())
-                .append("\"")
-                .append(" -i")
-                .append(" \"")
-                .append(videoStreamFile.getAbsolutePath())
-                .append("\"")
-                .append(" \"")
-                .append(videoStreamFile.getAbsolutePath(), 0, dotIndex)
-                .append(ext)
-                .append("\"");
-
-        return cmd.toString();
-    }
-
 }

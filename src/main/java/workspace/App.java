@@ -27,7 +27,7 @@ public class App {
         File file = new File("F:\\UNSORTED\\b\\00");
         TeeVideoDownloader obj = new TeeVideoDownloader(null, VideoQuality.Q_4K, file, false);
 //        TeeVideoDownloader obj = new TeeVideoDownloader();
-        obj.start1();
+        obj.begin();
 
     }
 
@@ -35,11 +35,23 @@ public class App {
 
 /*
  *  Date Created: 25th April 2K19, 09:48 AM..!!
- *  Time Stamp: 14th November 2K19, 10:36 PM..!!
+ *  Time Stamp: 26th November 2K19, 02:27 PM..!!
  *
  *  Project Name : Tee Video Downloader [TVD]
  *
- *  Status: Stable - Exceptions Handled
+ *  Status: Stable - Unstable [Connection Timeout Exception]
+ *
+ *  Bugs Alive:
+ *  1. Unpredictable Connection Timeout & SSL Exception due to Timeout when a single thread
+ *     is Downloading for a long time. Connection Time Out Exception in DownloaderThread
+ *  2. Uncertainly slow downloading speed for certain file parts at specific urls including "https://www.youtube.com/watch?v=FsParg61xGw"
+ *  3. Handle the scenario when File with the same name already exists in srcDir or tempDirPath
+ *
+ *  Change Log:
+ *
+ *  11th Commit - [TVD-Test-04]
+ *  1. Fixed up mainUrl for single video url by stripping off the additional characters including associated playlist information
+ *  2. Updated srcDir to defaultSaveDir
  *
  *  10th Commit - [Handled Exceptions]
  *  1. Handled Most of the Exceptions well including SSL and ConnectionException

@@ -61,6 +61,7 @@ public class DownloaderThread extends Thread {
 
             } catch (IOException e) {
 
+                System.out.println(e.getMessage());
                 System.out.println("IO Exception | DownloaderThread | [01] |");
                 System.out.println("Current OBJ State : " + this.toString());
                 targetFileChannel = null;
@@ -156,8 +157,7 @@ class MyConnectionUtil {
 
         while (connectionAttempts < 5) {
             if (connectionAttempts > 0)
-                System.out.println("Retry Attempt : " + connectionAttempts);
-//            System.out.println("Acquiring Responsive Connection... : " + connectionAttempts);
+                System.out.println("Acquire Response Code - Connection Attempt : " + connectionAttempts);
             try {
 
                 urlConnection = MyConnectionUtil.establishHttpUrlConnection(resourceUrl);
@@ -177,6 +177,8 @@ class MyConnectionUtil {
             } catch (ConnectException e) {
                 System.out.println("Exception [06] : Unable to establish Connection");
                 e.printStackTrace();
+                /*connectionAttempts++;
+                continue;*/
             } catch (MalformedURLException e) {
                 System.out.println("MalformedException [02] : MalformedURLException");
                 e.printStackTrace();

@@ -1,6 +1,7 @@
 package libs.koh_youtube_dl.youtubedl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.koh.stdlib.utils.KOHFilesUtil;
 import libs.koh_youtube_dl.mapper.VideoFormat;
 import libs.koh_youtube_dl.mapper.VideoInfo;
 import libs.koh_youtube_dl.mapper.VideoThumbnail;
@@ -40,21 +41,11 @@ public class YoutubeDL {
         }
 
 /*
-        // checking map view of environment
-        System.out.println("checking map view of environment");
-        for(Map.Entry<String, String> entry : processBuilder.environment().entrySet())
-        {
-            // checking key and value separately
-            System.out.println("Key = " + entry.getKey() +
-                    ", Value = " + entry.getValue());
-        }
-*/
-
         System.out.println("\nCommand: " + command);
-
         System.out.println("\nSplit: ");
         for (String s : split)
             System.out.print(s + " | ");
+*/
 
         Process process;
         try {
@@ -104,18 +95,27 @@ public class YoutubeDL {
         return execute(request).getOut();
     }
 
+    public static void saveVideoInfoListToJsonFile(String url, File jsonFile) throws YoutubeDLException {
+
+        YoutubeDLRequest request = new YoutubeDLRequest(url);
+        request.setOption("dump-json");
+
+        String strJsonArray = processJson(execute(request).getOut());
+        KOHFilesUtil.writeStrToFile(strJsonArray, jsonFile);
+
+    }
+
     public static List<VideoInfo> getVideoInfoList(String url) throws YoutubeDLException {
 
         YoutubeDLRequest request = new YoutubeDLRequest(url);
         request.setOption("dump-json");
 
         YoutubeDLResponse response = execute(request);
-        ObjectMapper objectMapper = new ObjectMapper();
         List<VideoInfo> videoInfoList;
         try {
 
             String strJsonArray = processJson(response.getOut());
-            videoInfoList = Arrays.asList(objectMapper.readValue(strJsonArray, VideoInfo[].class));
+            videoInfoList = Arrays.asList(new ObjectMapper().readValue(strJsonArray, VideoInfo[].class));
             return videoInfoList;
 
         } catch (IOException var6) {

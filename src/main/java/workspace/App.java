@@ -35,7 +35,7 @@ public class App {
 
 /*
  *  Date Created: 25th April 2K19, 09:48 AM..!!
- *  Time Stamp: 26th November 2K19, 02:27 PM..!!
+ *  Time Stamp: 26th November 2K19, 10:54 PM..!!
  *
  *  Project Name : Tee Video Downloader [TVD]
  *
@@ -48,6 +48,12 @@ public class App {
  *  3. Handle the scenario when File with the same name already exists in srcDir or tempDirPath
  *
  *  Change Log:
+ *
+ *  12th Commit - [TVD-Test-05]
+ *  1. Added InvalidUrlException to allow only Youtube Urls.
+ *  2. Saved VideoInfoList in Json File in directory : defaultDownloadDir/.temp/JSONs/
+ *  3. Acquire Fully Qualified Playlist Name using youtubePlaylistPOJO.
+ *  4. Cleaned-up Debug Messages from Console.
  *
  *  11th Commit - [TVD-Test-04]
  *  1. Fixed up mainUrl for single video url by stripping off the additional characters including associated playlist information

@@ -11,6 +11,7 @@ public class YoutubeDLException extends Exception {
         this.message = e.getMessage();
     }
 
+    @Override
     public String getMessage() {
         return this.message;
     }

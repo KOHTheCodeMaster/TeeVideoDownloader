@@ -73,7 +73,7 @@ public class YoutubeDLRequest {
             iterator.remove();
         }
 
-        System.out.println("buildOptions: " + builder);
+//        System.out.println("buildOptions: " + builder);
         return builder.toString().trim();
     }
 }

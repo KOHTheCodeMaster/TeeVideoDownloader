@@ -1,5 +1,7 @@
 package workspace;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.koh.stdlib.utils.MyTimer;
 import libs.koh_youtube_dl.mapper.VideoFormat;
 import libs.koh_youtube_dl.mapper.VideoInfo;
 import libs.koh_youtube_dl.utils.*;
@@ -9,10 +11,7 @@ import libs.koh_youtube_dl.youtubedl.YoutubeDLException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -35,6 +34,7 @@ public class TeeVideoDownloader {
     private VideoQuality foundTopScope;
     private VideoQuality preferredVideoQuality;
     private DownloadManager downloadManager;
+    private MyTimer myTimer;
 
     /**
      * Instantiates a new Tee video downloader.
@@ -62,6 +62,7 @@ public class TeeVideoDownloader {
         this.tempDirPath = defaultDownloadDir + "/.temp";
         this.mustKeepMP4 = mustKeepMP4;
         this.EXTENSION = mustKeepMP4 ? "mp4" : "mkv";
+        this.myTimer = new MyTimer();
     }
 
     /**
@@ -85,7 +86,12 @@ public class TeeVideoDownloader {
     private void init() {
 
         initializeDataMembers();
-        fixupMainUrl();
+        try {
+            fixMainUrl();
+        } catch (InvalidUrlException e) {
+            System.out.println("InvalidUrlException [01] | Unable to Fix MainUrl");
+            e.printStackTrace();
+        }
 
         downloadManager = new DownloadManager(tempDirPath);
         serialNumPrefix = 1;
@@ -102,19 +108,27 @@ public class TeeVideoDownloader {
      * Fix the mainUrl for single video url by stripping off the additional characters.
      * Single Video url consists of "youtube.com/watch?v=" followed by 11 characters of unique video id.
      */
-    private void fixupMainUrl() {
+    private void fixMainUrl() throws InvalidUrlException {
 
-        System.out.println("Before MainUrl : " + mainUrl);
+        if (!mainUrl.startsWith("https://www.youtube.com") || mainUrl.length() < 43)
+            throw new InvalidUrlException(mainUrl);
 
-        String singleVideoUrlPreset = "youtube.com/watch?v=";
+        if (mainUrl.startsWith("https://www.youtube.com/playlist?list=")) {
+            isPlaylist = true;
+            return;
+        }
+
         final int YOUTUBE_VIDEO_ID_LENGTH = 11;
-        int pos = mainUrl.indexOf(singleVideoUrlPreset) - 1;
+        final int MINIMUM_VALID_URL_LENGTH = 43;
+        final String singleVideoUrlPreset = "youtube.com/watch?v=";
+        final int pos = mainUrl.indexOf(singleVideoUrlPreset);
 
-        if (pos > 0)  //  mainUrl contains singleVideoUrlPreset
-            mainUrl = mainUrl.substring(0, pos + singleVideoUrlPreset.length() + YOUTUBE_VIDEO_ID_LENGTH + 1);
+        //  https://www.youtube.com/watch?v=123456789AB     -   43 Characters
+        if (pos > 0 && mainUrl.length() >= MINIMUM_VALID_URL_LENGTH) {  //  mainUrl contains singleVideoUrlPreset
+            mainUrl = mainUrl.substring(0, pos + singleVideoUrlPreset.length() + YOUTUBE_VIDEO_ID_LENGTH);
+            isPlaylist = false;
+        }
 
-//        System.out.println(pos + " " + singleVideoUrlPreset.length() + " " + mainUrl.length());
-        System.out.println("After MainUrl : " + mainUrl);
     }
 
     private void initializeDataMembers() {
@@ -140,45 +154,57 @@ public class TeeVideoDownloader {
 
     private void parseUrl(String url) {
 
+        Consumer<VideoInfo> consumerParseVideoInfo = vi ->
+                downloadVI(vi.formats, preferredVideoQuality, vi.title);
+
+        List<VideoInfo> videoInfoList;
+
         try {
 
-            Consumer<VideoInfo> consumerParseVideoInfo = vi ->
-                    downloadVI(vi.formats, defaultDownloadDir, preferredVideoQuality, vi.title);
+            if (isPlaylist) {
 
-            List<VideoInfo> videoInfoList = YoutubeDL.getVideoInfoList(url);
+                //  Instantiate youtubePlaylistPOJO
+                YoutubePlaylistPOJO youtubePlaylistPOJO = new ScrapperYoutubePlaylist().acquireYTPLPOJO(url);
+                String fullyQualifiedPlaylistName = youtubePlaylistPOJO.acquireFullyQualifiedPlaylistName();
+                totalNumOfVids = youtubePlaylistPOJO.getVideosCount();
 
-            if (videoInfoList.size() > 1) {
-                isPlaylist = true;
-                totalNumOfVids = videoInfoList.size();
+                //  Update defaultDownloadDir to fullyQualifiedPlaylistName
+                this.defaultDownloadDir = new File(defaultDownloadDir, fullyQualifiedPlaylistName);
 
-                YoutubePlaylistPOJO youtubePlaylistPOJO = new ScrapperYoutubePlaylist().acquireYTPOJO(mainUrl);
-                String newDirName = youtubePlaylistPOJO.getTitle() + " ~"
-                        + youtubePlaylistPOJO.getChannelName() + " ["
-                        + youtubePlaylistPOJO.getVideosCount() + "]";
-                newDirName = newDirName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
-                this.defaultDownloadDir = new File(defaultDownloadDir, newDirName);
-
-                if (this.defaultDownloadDir.mkdirs()) System.out.println("Subfolder : "
-                        + this.defaultDownloadDir.getAbsolutePath() + " Created Successfully!");
+                //  Create defaultDownloadDir
+                if (this.defaultDownloadDir.mkdirs()) System.out.println("Subfolder Created Successfully : "
+                        + this.defaultDownloadDir.getAbsolutePath());
                 else System.out.println("ERROR : Failed to create Subfolder : "
                         + this.defaultDownloadDir.getAbsolutePath());
 
+                //  Save VideoInfoList as Json file in directory : defaultDownloadDir/.temp/JSONs/
+                File jsonDir = new File(tempDirPath, "JSONs");
+
+                if (!jsonDir.exists() && !jsonDir.mkdirs())
+                    System.out.println("Unable to create JSONs Directory...");
+
+                File ytplJsonFile = new File(jsonDir, fullyQualifiedPlaylistName + ".json");
+                YoutubeDL.saveVideoInfoListToJsonFile(url, ytplJsonFile);
+                videoInfoList = Arrays.asList(new ObjectMapper().readValue(ytplJsonFile, VideoInfo[].class));
+
             } else {
+                videoInfoList = YoutubeDL.getVideoInfoList(mainUrl);
                 System.out.println("Found Single Video!");
             }
 
             videoInfoList.forEach(consumerParseVideoInfo);
 
         } catch (YoutubeDLException e) {
+            System.out.println("YoutubeDLException [01] | Parsing URL Failed...");
             e.printStackTrace();
-            System.out.println("URL Not Supported!\n" +
-                    "Try Again with Another Website...");
             System.exit(-17);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
     }
 
-    private void downloadVI(ArrayList<VideoFormat> formats, File defaultDownloadDir, VideoQuality preferredVideoQuality, String title) {
+    private void downloadVI(ArrayList<VideoFormat> formats, VideoQuality preferredVideoQuality, String title) {
 
         foundTopScope = null;
         AtomicBoolean shouldDirectlyCopyVideoStream = new AtomicBoolean(false);
@@ -202,11 +228,8 @@ public class TeeVideoDownloader {
                     foundTopScope = preferredVideoQuality.acquireTopmostPreferredVQ(currentVQ);
 
                     //  When currentVQ > preferredVideoQuality
-                    if (foundTopScope == null)
-                        return false;
-
-                    System.out.println("FTS : " + foundTopScope);
-                    return true;
+//                    System.out.println("FTS : " + foundTopScope);
+                    return foundTopScope == null;
                 }
 
                 return (currentVQ.equals(foundTopScope));
@@ -229,17 +252,17 @@ public class TeeVideoDownloader {
 //        Predicate<VideoFormat> filterOffVP9VCodec = vf -> !vf.vcodec.toLowerCase().contains("vp9");
 
         String divider = "\n\n\n===================================\n\n\n";
+/*
         System.out.println("Before Filter :" + divider);
         formats.stream()
                 .sorted(comparatorHighToLowResolution)
                 .forEach(System.out::println);
 
         System.out.println("After Filter :" + divider);
+*/
 
-//        Consumer<VideoFormat> consumer = System.out::println;
         Consumer<VideoFormat> consumerDownloadVideoStream = vf -> {
 
-            System.out.println("==vf : " + vf.ext);
             //  Check for MP4 format
             if (vf.ext.toLowerCase().equals("mp4") || !mustKeepMP4) shouldDirectlyCopyVideoStream.set(true);
 
@@ -267,7 +290,6 @@ public class TeeVideoDownloader {
                 targetExt = vf.acodec.contains("mp4a") ? "aac" : "m4a";
                 try {
                     File tempFile = FFMPEGWrapper.extractAudioFileOffVideo(aFile, targetExt);
-//                System.out.println("===!!!!");
                     Files.deleteIfExists(aFile.toPath());
                     aFile = tempFile;
                 } catch (IOException e) {
@@ -291,7 +313,6 @@ public class TeeVideoDownloader {
                 .sorted(comparatorHighToLowResolution)
                 .filter(filterQuality)
                 .sorted(comparatorHighToLowTBR)
-//                .filter(filterOffVP9VCodec)
                 .limit(1)
                 .forEach(consumerDownloadVideoStream);
         System.out.println("Video Part Downloaded Successfully!");
@@ -320,7 +341,7 @@ public class TeeVideoDownloader {
 
         //  Merge by using ffmpeg
         mergeVideoAndAudioStreams(targetFile, aFile, vFile, shouldDirectlyCopyAudioStreams.get(), shouldDirectlyCopyVideoStream.get());
-        System.out.println("END!!!" + "\n\n\n===================================\n\n\n");
+        System.out.println("END..!!" + "\n\n\n===================================\n\n\n");
 
     }
 
@@ -341,4 +362,10 @@ public class TeeVideoDownloader {
 
     }
 
+    private static class InvalidUrlException extends Throwable {
+
+        InvalidUrlException(String exceptionMsg) {
+            super("Invalid Youtube URL Found : " + exceptionMsg);
+        }
+    }
 }

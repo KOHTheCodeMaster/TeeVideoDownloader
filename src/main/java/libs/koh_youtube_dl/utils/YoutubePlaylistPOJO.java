@@ -12,6 +12,12 @@ public class YoutubePlaylistPOJO {
         this.videosCount = videosCount;
     }
 
+    public String acquireFullyQualifiedPlaylistName() {
+        String fullyQualifiedPlaylistName = title + " ~" + channelName + " [" + videosCount + "]";
+        fullyQualifiedPlaylistName = fullyQualifiedPlaylistName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
+        return fullyQualifiedPlaylistName;
+    }
+
     public String getTitle() {
         return title;
     }

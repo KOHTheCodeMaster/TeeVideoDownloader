@@ -11,8 +11,6 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class DownloadManager {
 
@@ -45,17 +43,19 @@ public class DownloadManager {
             return;
         }
 
+/*
         Map<String, List<String>> headerFields1 = urlConnection1.getHeaderFields();
         Set<Map.Entry<String, List<String>>> entries = headerFields1.entrySet();
         entries.forEach(e -> System.out.println(e.getKey() + " : " + e.getValue()));
+*/
 
         final long fileLength = Long.parseLong(urlConnection1.getHeaderFields().get("Content-Length").get(0));
-        System.out.println("Original File Length : " + fileLength);
+//        System.out.println("Original File Length : " + fileLength);
 
         final long dxFilePartLength = fileLength / THREAD_COUNT;   //  Downloaded by Each Thread
         final long remainingDataToDownload = fileLength % THREAD_COUNT; //  Download At End
 
-        System.out.println("dx : " + dxFilePartLength);
+//        System.out.println("dx : " + dxFilePartLength);
         Runnable runnable = () -> {
             /*
                 Time Stamp : 22nd August 2K19, 12:56 AM..!!
@@ -133,6 +133,7 @@ public class DownloadManager {
             //  Initiate Downloading each thread
             for (DownloaderThread downloaderThread : downloaderThreadList) {
                 downloaderThread.start();
+//                downloaderThread.join();
             }
 
             //  Wait for each thread to join and then add each tempPartFile to filePartsList
@@ -197,10 +198,9 @@ public class DownloadManager {
             e.printStackTrace();
         }
 
-        boolean isMultiPartDownloadSupportAvailable = responseCode == 206;
-        System.out.println("isMultiPartDownloadSupportAvailable : " + isMultiPartDownloadSupportAvailable);
+        //        System.out.println("isMultiPartDownloadSupportAvailable : " + responseCode == 206);
 
-        return isMultiPartDownloadSupportAvailable;
+        return responseCode == 206;
 
     }
 

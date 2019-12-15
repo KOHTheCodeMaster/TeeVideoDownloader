@@ -61,28 +61,34 @@ public enum VideoQuality {
     public static VideoQuality chooseVideoQuality() {
 
         Scanner scanner = new Scanner(System.in);
-        int ch;
+        String str;
 
         do {
-            ch = scanner.nextInt();
-            switch (ch) {
 
-                case 4000:
+//            System.out.println("Enter Preferred Quality.: 4K | 2000 | 1080 | 720 | 480 | 360 | 240 | 144\n[?] : ");
+            str = scanner.nextLine().toLowerCase();
+
+            switch (str) {
+
+                case "4000":
+                case "4k":
                     return Q_4K;
-                case 2000:
+                case "2000":
+                case "2k":
                     return Q_2K;
-                case 1080:
+                case "1080":
                     return Q_1080P;
-                case 720:
+                case "720":
                     return Q_720P;
-                case 480:
+                case "480":
                     return Q_480P;
-                case 360:
+                case "360":
                     return Q_360P;
-                case 240:
+                case "240":
                     return Q_240P;
-                case 144:
+                case "144":
                     return Q_144P;
+
                 default:
                     System.out.println("Invalid Input!\nPlease Enter Valid Width Resolution : ");
 

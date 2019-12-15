@@ -55,8 +55,14 @@ public class DownloaderThread extends Thread {
                 tempTotalBytesTransferred = 0;
                 tempTotalBytesTransferred += targetFileChannel.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
 
-                if (tempTotalBytesTransferred != originalLength)
-                    System.out.println("ERROR | Exception : PARTIAL Download...");
+                if (tempTotalBytesTransferred != originalLength) {
+                    System.out.println("ERROR | Exception : PARTIAL Download...\n" +
+                            "Retrying : " + ++retryAttempts);
+                    targetFileChannel = null;
+                    readableByteChannel = null;
+                    deleteCurrentPartFile();
+                    continue;
+                }
                 break;
 
             } catch (IOException e) {
@@ -106,7 +112,9 @@ public class DownloaderThread extends Thread {
         return tempPartFile;
     }
 
-
+    public int getTHREAD_SERIAL_ID() {
+        return THREAD_SERIAL_ID;
+    }
 }
 
 class MyConnectionUtil {

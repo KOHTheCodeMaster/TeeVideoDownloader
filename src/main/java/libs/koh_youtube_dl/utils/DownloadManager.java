@@ -15,9 +15,9 @@ import java.util.List;
 public class DownloadManager {
 
     private static final int THREAD_COUNT = 100;
-    private static long sharedCurrentFilePointer;
-    private static long startingIndexForEachThread;
-    private final String TEMP_DIR_PATH;
+//    private static long sharedCurrentFilePointer;
+private static long startingIndexForEachThread;
+    private final String TEMPORARY_PARTS_DIR_PATH;
     private int indexOfFileParts;
     private List<File> filePartsList;
     private List<DownloaderThread> downloaderThreadList;
@@ -25,7 +25,12 @@ public class DownloadManager {
     public DownloadManager(String tempDirPath) {
         downloaderThreadList = new ArrayList<>();
         filePartsList = new ArrayList<>();
-        TEMP_DIR_PATH = tempDirPath;
+        TEMPORARY_PARTS_DIR_PATH = tempDirPath + "/Temp-Parts";
+
+        if (!new File(TEMPORARY_PARTS_DIR_PATH).mkdirs()) {
+            System.out.println("Failed to Create Temp-Parts Dir. to store temporary files");
+        }
+
     }
 
     public void downloadOffUrl(String resourceUrl, File targetFile) {
@@ -55,45 +60,16 @@ public class DownloadManager {
         final long dxFilePartLength = fileLength / THREAD_COUNT;   //  Downloaded by Each Thread
         final long remainingDataToDownload = fileLength % THREAD_COUNT; //  Download At End
 
-//        System.out.println("dx : " + dxFilePartLength);
-        Runnable runnable = () -> {
-            /*
-                Time Stamp : 22nd August 2K19, 12:56 AM..!!
-                sharedCurrentFilePointer -> value of i i.e. current Pos.
-                        Following Condition :
-                (sharedCurrentFilePointer + buffer.length > fileLength) == true
-                only when the Main Thread has completed the Processing.
-             */
-            while (sharedCurrentFilePointer < fileLength) {
-                System.out.print((sharedCurrentFilePointer * 100 / fileLength) + "%");
-
-                try {
-                    Thread.sleep(100);
-//                        this.wait(1000);
-                    System.out.print("\b\b\b");
-
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            System.out.print("\b\b\b");
-            System.out.println("100%\nFile Downloaded Successfully!");
-
-        };
-//            Thread displayPercentageThread = new Thread(runnable);
-//            displayPercentageThread.start();
-
         Runnable downloaderRunnable = () -> {
 
             long j = startingIndexForEachThread;
 
             String fileName = "A-" + ++indexOfFileParts + ".part";
-            File tempPartFile = new File(TEMP_DIR_PATH, fileName);
+            File tempPartFile = new File(TEMPORARY_PARTS_DIR_PATH, fileName);
 
             MyConnectionUtil myConnectionUtil = new MyConnectionUtil(resourceUrl, j, dxFilePartLength);
 
-            //  Initialize downloaderThread
-            //  indexOfFileParts --> Thread Serial ID
+            //  Initialize downloaderThread | indexOfFileParts --> Thread Serial ID
             DownloaderThread downloaderThread = new DownloaderThread(tempPartFile, indexOfFileParts, myConnectionUtil);
             downloaderThreadList.add(downloaderThread);
 
@@ -140,7 +116,6 @@ public class DownloadManager {
             for (DownloaderThread downloaderThread : downloaderThreadList) {
                 downloaderThread.join();
                 filePartsList.add(downloaderThread.getTempPartFile());
-//                System.out.println("Downloaded tempPartFile : " + downloaderThread.getTempPartFile());
             }
 
             System.out.println("Download Completed! | FL : " + fileLength +
@@ -168,7 +143,7 @@ public class DownloadManager {
         MyConnectionUtil myConnectionUtil = new MyConnectionUtil(resourceUrl, 0, Long.MAX_VALUE);
 
         String fileName = "A-" + ++indexOfFileParts + ".part";
-        File tempPartFile = new File(TEMP_DIR_PATH, fileName);
+        File tempPartFile = new File(TEMPORARY_PARTS_DIR_PATH, fileName);
 
         //  Initialize downloaderThread
         //  indexOfFileParts --> Thread Serial ID
@@ -206,7 +181,7 @@ public class DownloadManager {
 
     private void reset() {
 
-        sharedCurrentFilePointer = 0;
+//        sharedCurrentFilePointer = 0;
         startingIndexForEachThread = 0;
         indexOfFileParts = 0;
 
@@ -235,7 +210,7 @@ public class DownloadManager {
 
         long i1 = System.nanoTime();
         long pos = 0;
-        long bytesTransferred = 0;
+
         for (int i = 1; i <= filePartsList.size(); i++) {
 
             File f = filePartsList.get(i - 1);
@@ -243,21 +218,11 @@ public class DownloadManager {
             try (ReadableByteChannel rbc = Channels.newChannel(new FileInputStream(f));
                  FileChannel fc = new FileOutputStream(destCombinedFile, true).getChannel()) {
 
-//                System.out.println("Combining Part - " + i);
-
-                try {
-                    fc.position(fileLength + 1);
-                    bytesTransferred = fc.transferFrom(rbc, pos, Long.MAX_VALUE);
-                } catch (IOException e) {
-                    System.out.println("IO Exception During Transfer [Merging]" +
-                            "\nError Msg. : " + e.getMessage());
-                    e.printStackTrace();
-                }
-
-                pos += bytesTransferred;
+                fc.position(fileLength + 1);
+                pos += fc.transferFrom(rbc, pos, Long.MAX_VALUE);
 
             } catch (IOException e) {
-                System.out.println("IO Exception [03]");
+                System.out.println("IO Exception [03] - Failed to Combine File Parts...");
                 e.printStackTrace();
             }
 

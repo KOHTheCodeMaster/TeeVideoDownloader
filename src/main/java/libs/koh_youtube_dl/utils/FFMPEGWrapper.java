@@ -1,5 +1,7 @@
 package libs.koh_youtube_dl.utils;
 
+import exceptions.ProcessIncompleteException;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -116,7 +118,7 @@ public class FFMPEGWrapper {
 
     }
 
-    public void startMerging() throws IOException {
+    public void startMerging() throws IOException, ProcessIncompleteException {
 
         long startTime = System.nanoTime();
         String[] commandArr = buildCommand();
@@ -148,9 +150,9 @@ public class FFMPEGWrapper {
 
         String out = outBuffer.toString();
         String err = errBuffer.toString();
-        if (exitCode > 0) {
-            throw new IOException(err);
-        } else {
+
+        if (exitCode > 0) throw new ProcessIncompleteException(err);
+        else {
             System.out.println("Merging Successful..!!");
             System.out.println("Out Buffer : " + out);
             System.out.println("Err Buffer : " + err);

@@ -1,7 +1,10 @@
 package workspace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.koh.stdlib.utils.KOHStringUtil;
 import dev.koh.stdlib.utils.MyTimer;
+import dev.koh.stdlib.utils.enums.StringOptions;
+import exceptions.ProcessIncompleteException;
 import libs.koh_youtube_dl.mapper.VideoFormat;
 import libs.koh_youtube_dl.mapper.VideoInfo;
 import libs.koh_youtube_dl.utils.*;
@@ -11,6 +14,7 @@ import libs.koh_youtube_dl.youtubedl.YoutubeDLException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -29,6 +33,7 @@ public class TeeVideoDownloader {
     private boolean mustKeepMP4;
     private String mainUrl;
     private File defaultDownloadDir;
+    private File downloadPlaylistDir;
     private File aFile;
     private File vFile;
     private VideoQuality foundTopScope;
@@ -59,7 +64,7 @@ public class TeeVideoDownloader {
         this.preferredVideoQuality = preferredVideoQuality;
         this.mainUrl = mainUrl;
         this.defaultDownloadDir = defaultDownloadDir;
-        this.tempDirPath = defaultDownloadDir + "/.temp";
+        this.tempDirPath = defaultDownloadDir + "/.Temp";
         this.mustKeepMP4 = mustKeepMP4;
         this.EXTENSION = mustKeepMP4 ? "mp4" : "mkv";
         this.myTimer = new MyTimer();
@@ -71,15 +76,35 @@ public class TeeVideoDownloader {
     void begin() {
 
         System.out.println("Begin.");
-        long i1 = System.nanoTime();
+        myTimer.startTimer();
 
         init();
         parseUrl(mainUrl);
+        cleanTempDirs();
 
-        long i2 = System.nanoTime();
-        System.out.println("\n\nTotal Time : " + (i2 - i1) / 1E9);
-
+        myTimer.stopTimer(true);
         System.out.println("End.");
+
+    }
+
+    private void cleanTempDirs() {
+
+        //  Create Sub-Dirs.
+        try {
+
+            if (Files.deleteIfExists(Paths.get(tempDirPath, "Output")) &&
+                    Files.deleteIfExists(Paths.get(tempDirPath, "Temp-Parts")) &&
+                    Files.deleteIfExists(Paths.get(tempDirPath, "Failed-To-Merge")) &&
+                    Files.deleteIfExists(Paths.get(tempDirPath, "Audio-Streams")) &&
+                    Files.deleteIfExists(Paths.get(tempDirPath, "Video-Streams")) &&
+                    Files.deleteIfExists(Paths.get(tempDirPath))) {
+
+                System.out.println("\nCleaned Temporary Dirs. Successfully.\n");
+            } else System.out.println("Failed to Clean Temp Dirs...");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -96,9 +121,15 @@ public class TeeVideoDownloader {
         downloadManager = new DownloadManager(tempDirPath);
         serialNumPrefix = 1;
 
-        File file = new File(tempDirPath);
-        if (!file.isDirectory() && !file.mkdirs()) {
-            System.out.println("Failed to Create Temp Dir. to store temporary files");
+        //  Create Sub-Dirs.
+        if (new File(tempDirPath, "Output").mkdirs() &&
+//                new File(tempDirPath, "Temp-Parts").mkdirs() &&
+                new File(tempDirPath, "Failed-To-Merge").mkdirs() &&
+                new File(tempDirPath, "Audio-Streams").mkdirs() &&
+                new File(tempDirPath, "Video-Streams").mkdirs()) {
+            System.out.println("Sub Dirs. Created Successfully.");
+        } else {
+            System.out.println("Failedd to Create Temp Dirs. to store temporary files");
             System.exit(-17);
         }
 
@@ -137,12 +168,14 @@ public class TeeVideoDownloader {
         if (mainUrl == null) {
             System.out.println("Enter MAIN URL: ");
             mainUrl = scanner.nextLine();
-            System.out.println("Enter Src Dir.: ");
-            defaultDownloadDir = new File(scanner.nextLine());
-            tempDirPath = defaultDownloadDir + "/.temp";
+            String promptSrcDir = "Enter Src Dir.: ";
+            //  TODO:   Create the Dirs. on-fly if doesn't exists but ensure that the given path is a Valid Dir. Path
+            defaultDownloadDir = new File(KOHStringUtil.userInputString(promptSrcDir, StringOptions.NOWHITESPACE, myTimer));
+            tempDirPath = defaultDownloadDir + "/.Temp";
 
-            System.out.println("Download in MP4 Format Only? [Y/N] : ");
-            mustKeepMP4 = scanner.nextLine().toLowerCase().charAt(0) == 'y';
+            String promptKeepMP4 = "Download in MP4 Format Only? [Y/N] : ";
+            mustKeepMP4 = KOHStringUtil.userInputString(promptKeepMP4,
+                    StringOptions.YES_OR_NO, myTimer).charAt(0) == 'y';
             this.EXTENSION = mustKeepMP4 ? "mp4" : "mkv";
 
             System.out.println("Enter Preferred Quality.: ");
@@ -168,20 +201,20 @@ public class TeeVideoDownloader {
                 String fullyQualifiedPlaylistName = youtubePlaylistPOJO.acquireFullyQualifiedPlaylistName();
                 totalNumOfVids = youtubePlaylistPOJO.getVideosCount();
 
-                //  Update defaultDownloadDir to fullyQualifiedPlaylistName
-                this.defaultDownloadDir = new File(defaultDownloadDir, fullyQualifiedPlaylistName);
+                //  Initialize downloadPlaylistDir to defaultDownloadDir/fullyQualifiedPlaylistName
+                this.downloadPlaylistDir = new File(defaultDownloadDir, fullyQualifiedPlaylistName);
 
-                //  Create defaultDownloadDir
-                if (this.defaultDownloadDir.mkdirs()) System.out.println("Subfolder Created Successfully : "
-                        + this.defaultDownloadDir.getAbsolutePath());
+                //  Create downloadPlaylistDir
+                if (downloadPlaylistDir.mkdirs()) System.out.println("Subfolder Created Successfully : "
+                        + downloadPlaylistDir.getAbsolutePath());
                 else System.out.println("ERROR : Failed to create Subfolder : "
-                        + this.defaultDownloadDir.getAbsolutePath());
+                        + downloadPlaylistDir.getAbsolutePath());
 
-                //  Save VideoInfoList as Json file in directory : defaultDownloadDir/.temp/JSONs/
-                File jsonDir = new File(tempDirPath, "JSONs");
+                //  Save VideoInfoList as Json file in directory : defaultDownloadDir/downloadPlaylistDir/JSON/*.json
+                File jsonDir = new File(downloadPlaylistDir, "JSON");
 
                 if (!jsonDir.exists() && !jsonDir.mkdirs())
-                    System.out.println("Unable to create JSONs Directory...");
+                    System.out.println("Unable to create JSON Directory...");
 
                 File ytplJsonFile = new File(jsonDir, fullyQualifiedPlaylistName + ".json");
                 YoutubeDL.saveVideoInfoListToJsonFile(url, ytplJsonFile);
@@ -241,17 +274,17 @@ public class TeeVideoDownloader {
         };
         Predicate<VideoFormat> filterAudioCodecs = vf -> {
 
-            //  Discard if Acodec doesn't exists or if Vcodec does exists
-            /*if (!vf.acodec.contains("none") || !vf.vcodec.contains("none"))
-                return false;*/
-            return !vf.acodec.contains("none");
+            /*
+                Accept only if Acodec exists AND Vcodec doesn't exists
+                i.e. when downloading Audio Streams, it allows only those formats that contains only Audio Streams
+                & not the ones with Audio & Video streams both.
+            */
+            return !vf.acodec.contains("none") && vf.vcodec.contains("none");
 
-//            return vf.acodec.toLowerCase().contains("opus");
         };
 
 //        Predicate<VideoFormat> filterOffVP9VCodec = vf -> !vf.vcodec.toLowerCase().contains("vp9");
 
-        String divider = "\n\n\n===================================\n\n\n";
 /*
         System.out.println("Before Filter :" + divider);
         formats.stream()
@@ -266,36 +299,26 @@ public class TeeVideoDownloader {
             //  Check for MP4 format
             if (vf.ext.toLowerCase().equals("mp4") || !mustKeepMP4) shouldDirectlyCopyVideoStream.set(true);
 
+            String videoStreamDirPath = tempDirPath + "/Video-Streams";
             String fName = title + "." + vf.ext;
             fName = fName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
-            vFile = new File(tempDirPath, fName);
+            vFile = new File(videoStreamDirPath, fName);
             downloadManager.downloadOffUrl(vf.url, vFile);
         };
 
         Consumer<VideoFormat> consumerDownloadAudioStream = vf -> {
 
-            boolean isAudioExtMp4 = vf.ext.equals("mp4");
-            String targetExt;
+            //  Directly Copy Audio Stream if doesn't intends to follow mustKeepMP4
+            //  Avoid explicit Audio-codec conversion by FFMPEG when mustKeepMP4 is False
+            if (!mustKeepMP4 || vf.ext.equals("m4a") || vf.ext.equals("mp4")) shouldDirectlyCopyAudioStreams.set(true);
 
-            //  Check for M4A format
-            if (vf.ext.equals("m4a") || isAudioExtMp4) shouldDirectlyCopyAudioStreams.set(true);
-
-//            String audioExt = isAudioExtMp4 ? "_DUAL" : vf.ext;
+            String audioStreamDirPath = tempDirPath + "/Audio-Streams";
             String fName = title + "." + vf.ext;
             fName = fName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
-            aFile = new File(tempDirPath, fName);
+
+            aFile = new File(audioStreamDirPath, fName);
             downloadManager.downloadOffUrl(vf.url, aFile);
 
-            if (isAudioExtMp4) {
-                targetExt = vf.acodec.contains("mp4a") ? "aac" : "m4a";
-                try {
-                    File tempFile = FFMPEGWrapper.extractAudioFileOffVideo(aFile, targetExt);
-                    Files.deleteIfExists(aFile.toPath());
-                    aFile = tempFile;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         };
 
         System.out.println("Downloading Audio Now!");
@@ -318,9 +341,8 @@ public class TeeVideoDownloader {
         System.out.println("Video Part Downloaded Successfully!");
         System.out.println("Merging Audio and Video Files now!");
 
-        //  Merge Video & Audio Streams (files) together using FFMPEG
+        //  Initialize the targetFileName with serialNumPrefix
         int dotIndex = vFile.getName().lastIndexOf('.');
-        String ext = ".mkv";
         String targetFileName = "";
 
         if (isPlaylist) {
@@ -332,15 +354,16 @@ public class TeeVideoDownloader {
                 targetFileName = String.format("%03d. ", serialNumPrefix);
             else
                 targetFileName = String.format("%04d. ", serialNumPrefix);
-            serialNumPrefix++;
         }
 
-        targetFileName += vFile.getName().substring(0, dotIndex) + ext;
+        targetFileName += vFile.getName().substring(0, dotIndex) + "." + EXTENSION;
         targetFileName = targetFileName.replaceAll("[\\-/\\\\:\"?<>*|]", "-");
-        File targetFile = new File(this.defaultDownloadDir, targetFileName);
+        File targetFile = new File(tempDirPath + "/Output", targetFileName);
 
-        //  Merge by using ffmpeg
+        //  Merge Video & Audio Streams (files) together using FFMPEG
         mergeVideoAndAudioStreams(targetFile, aFile, vFile, shouldDirectlyCopyAudioStreams.get(), shouldDirectlyCopyVideoStream.get());
+
+        serialNumPrefix++;
         System.out.println("END..!!" + "\n\n\n===================================\n\n\n");
 
     }
@@ -348,15 +371,51 @@ public class TeeVideoDownloader {
     private void mergeVideoAndAudioStreams(File targetFile, File aFile, File vFile, boolean shouldDirectlyCopyAudioStream, boolean shouldDirectlyCopyVideoStream) {
 
         FFMPEGWrapper ffmpegWrapper = new FFMPEGWrapper(targetFile, aFile, vFile, shouldDirectlyCopyAudioStream, shouldDirectlyCopyVideoStream, this.EXTENSION);
-//        System.out.println("EXTENSION : " + EXTENSION);
-//        System.out.println("tf : " + targetFile.getAbsolutePath());
+
         try {
+
             ffmpegWrapper.startMerging();
-            Files.delete(vFile.toPath());
-            Files.delete(aFile.toPath());
+
+            //  Finally, Move the Stable Output targetFile from .Temp/Output to defaultDownloadDir/PLDir
+            Files.move(targetFile.toPath(), Paths.get(downloadPlaylistDir.getAbsolutePath(), targetFile.getName()));
+            deleteIndividualStreamFiles(aFile, vFile);
+            System.out.println("Audio & Video Streams Merged Successfully..!!\n");
+
+        } catch (ProcessIncompleteException e) {
+
+            System.out.println("ProcessIncompleteException [01] : Failed to Complete startMerging Process");
+            System.out.println("Unable to Merge Audio & Video Streams...");
+            System.out.println("Exception Message : " + e.getMessage());
+            e.printStackTrace();
+            handleStreamsMergeFailed(aFile, vFile);
 
         } catch (IOException e) {
-            System.out.println("IOException [04] : Failed to Merge Audio & Video Streams");
+            System.out.println("IOException [01] : Failed to Merge Audio & Video Streams");
+            e.printStackTrace();
+        }
+
+    }
+
+    private void handleStreamsMergeFailed(File aFile, File vFile) {
+
+        try {
+            Files.move(aFile.toPath(), Paths.get(tempDirPath, "Failed-To-Merge", serialNumPrefix + "", "Audio-Streams", aFile.getName()));
+            Files.move(vFile.toPath(), Paths.get(tempDirPath, "Failed-To-Merge", serialNumPrefix + "", "Video-Streams", vFile.getName()));
+        } catch (IOException e) {
+            System.out.println("IOException [03] - Unable to Move Audio & Video Stream Files - aFile & vFile");
+            e.printStackTrace();
+        }
+
+    }
+
+    private void deleteIndividualStreamFiles(File aFile, File vFile) {
+
+        try {
+
+            Files.delete(aFile.toPath());
+            Files.delete(vFile.toPath());
+        } catch (IOException e) {
+            System.out.println("IOException [02] - Unable to Delete Temporary Files - aFile & vFile");
             e.printStackTrace();
         }
 

@@ -35,7 +35,7 @@ public class App {
 
 /*
  *  Date Created: 25th April 2K19, 09:48 AM..!!
- *  Time Stamp: 26th November 2K19, 10:54 PM..!!
+ *  Time Stamp: 15th December 2K19, 02:56 PM..!!
  *
  *  Project Name : Tee Video Downloader [TVD]
  *
@@ -48,6 +48,30 @@ public class App {
  *  3. Handle the scenario when File with the same name already exists in srcDir or tempDirPath
  *
  *  Change Log:
+ *
+ *  13th Commit - [TVD-Test-06]
+ *  1. Directories Related Updates:
+ *      a. Updated .temp dir to .Temp
+ *      b. Saving Audio & Video Streams separately in .Temp/Audio-Streams & .Temp/Video-Streams Dirs. respectively.
+           Next, after downloading both the streams, they're Merged into Single Stable File in .Temp/Output
+           i.e. targetFile for Merging Streams is saved in .Temp/Output
+           Finally, After Merging both the streams, the Stable Output file is Moved from .Temp/Output to defaultDownloadDir
+ *      c. After Downloading is Completed Successfully, All the Temporary Dirs. are cleaned.
+ *      d. Json file is now saved at defaultDownloadDir/PLDir/JSON/*.json
+ *      e. When Merging Streams is Failed, both separate streams are moved to
+ *         .Temp/Failed-To-Merge/serialNumPrefix/Audio-Streams & .../Video-Streams respectively
+ *  2. Using MyTimer to simply display Total Time Taken Precisely.
+ *  3. Using KOHStringUtil class for user input for mustKeepMP4 & defaultDownloadDir path as String (without dir. path validation)
+ *  4. Updated filterAudioCodecs to Accept only if Audio-codec exists AND Video-codec doesn't exists
+ *     i.e. when downloading Audio Streams, it allows only those formats that contains only Audio Streams & not the
+ *     ones with Audio & Video streams both.
+ *  5. Directly Copy Audio Stream if doesn't intends to follow mustKeepMP4
+       Avoid explicit Audio-codec conversion by FFMPEG when mustKeepMP4 is False
+ *  6. Added downloadPlaylistDir for clarity rather than re-assigning it to defaultDownloadDir
+ *  7. In case of Partial Download of particular .part File i.e when tempTotalBytesTransferred != originalLength
+ *     handled to retry to download that particular .part file all over again
+ *  8. Added ProcessIncompleteException to notify incomplete process when Merging the Streams using FFMPEG
+ *  9. Updated VideoQuality.chooseVideoQuality() method to accept 4K as well 4000 using switch cases with String
  *
  *  12th Commit - [TVD-Test-05]
  *  1. Added InvalidUrlException to allow only Youtube Urls.
